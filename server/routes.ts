@@ -45,10 +45,16 @@ The JSON must match this exact schema:
       "tips": "string - brief study/preparation tip for this milestone (optional)"
     }
   ],
+  "suggestedRoles": [
+    {
+      "roleName": "string - a team role name relevant to this course project, e.g. Project Lead, Developer, Researcher, Designer, Editor, etc.",
+      "description": "string - brief description of what this role does (optional)"
+    }
+  ],
   "summary": "string - 2-3 sentence summary of the course and its workload"
 }
 
-Sort milestones by date ascending. Include ALL deadlines, exams, quizzes, project due dates, presentation dates, and any other graded items mentioned.`;
+Sort milestones by date ascending. Include ALL deadlines, exams, quizzes, project due dates, presentation dates, and any other graded items mentioned. Suggest 3-5 relevant team roles based on the project type.`;
 
 const STRICT_RETRY_PROMPT = `Your previous response was not valid JSON. You MUST respond with ONLY valid JSON. No markdown code fences, no explanations, no text before or after the JSON. Start your response with { and end with }. Follow the exact schema provided.`;
 

@@ -1,0 +1,96 @@
+You are building an internal web app UI for a student team coordination tool (NOT a marketing landing page). Refactor the current app so the UI matches the attached wireframes.
+
+Goal: A multi-project workspace where “Syllabus -> AI timeline” is only one feature inside each Project page.
+
+UI/IA requirements (must match wireframes):
+A) Pages/routes
+1) /login
+- Simple Login/Sign up screen with Email + Password fields and a single primary button.
+- MVP auth can be fake (store “loggedIn=true” in localStorage) but the UI must exist.
+
+2) /app (Dashboard)
+- App shell layout:
+  - Top bar: left “Aligned (Logo)” text placeholder, right circle avatar button.
+  - Left sidebar (expandable/collapsible): “Project 1”, “Project 2”, and “Archived”.
+  - Main content:
+    - If no projects: show empty state card “Currently Empty” and a primary button “+ Add a Project”.
+    - If projects exist and one is selected: show a “Dashboard widgets” view with:
+      - Upcoming Deadlines (Timeline / Calendar-like view placeholder)
+      - Upcoming To-do list
+      - Action Items
+    - Include a small “+ Add” button near the widgets header (as in wireframe).
+
+3) /app/projects/new (Add New Project)
+- Form fields (wireframe):
+  - Project Name (text)
+  - Email of team members (input) + Invite button (MVP: just add to list, no real emails)
+  - Upload Syllabus / Instruction (PDF upload OR paste text)
+  - Create Project button
+- After Create Project:
+  - Create the project in local state/localStorage with members + empty widgets.
+  - If syllabus provided, immediately run syllabus analysis and attach milestones to the project, then route to the project detail page.
+
+4) /app/projects/[id] (Project Detail)
+- Must match wireframe layout:
+  - Left sidebar remains visible with project list.
+  - Header row shows project name + a Progress Bar.
+  - Right side buttons: “+ Widget” and “+ Upload Syllabus”
+  - Main grid contains widget cards:
+    - Document Org (shows selected doc tool and a link placeholder, e.g., Google Docs)
+    - Scheduler (shows selected scheduler tool placeholders, e.g., When2Meet / Calendly)
+    - Role Assigned (list of roles and assigned names)
+    - Timeline widget (this is where the syllabus milestones render)
+- Timeline widget:
+  - Show milestones as a vertical list (title, due date, type badge, description).
+  - Include “Regenerate” to rerun analysis.
+  - Also show summary text at top of timeline widget.
+
+5) /app/account (Account Setup)
+- Simple settings page:
+  - Name field + Change button
+  - Optional buttons “+ Add MBTI” and “+ Add Star Signs” (UI only placeholders)
+
+B) Data model (store in localStorage for MVP)
+Project:
+- id, name
+- members: {email}[]
+- milestones: {id, title, description, dueDate, type}[]
+- roles: {roleName, assignedToEmail|null}[]
+- docsLink (string|null), schedulerLink (string|null)
+- todos: string[]
+- actionItems: string[]
+- createdAt
+
+C) Key Feature: Syllabus -> AI Analysis -> Timeline (integrate as a project widget, NOT as homepage)
+- Implement /api/analyze-syllabus endpoint (or reuse if exists):
+  - Accept PDF upload (<=10MB) OR raw text.
+  - Extract text from PDF using pdf-parse.
+  - Call Anthropic Claude model claude-sonnet-4-20250514 using @anthropic-ai/sdk with ANTHROPIC_API_KEY.
+  - Use the provided “JSON only” system prompt to return:
+    projectTitle, milestones[], suggestedRoles[], summary
+  - Parse JSON safely:
+    - If JSON.parse fails, retry once with a stricter “return only JSON” message.
+    - Validate schema (zod) before returning.
+- On the frontend:
+  - In Add New Project and Project Detail, allow PDF upload OR paste text.
+  - Show loading state “Analyzing syllabus…” and disable buttons during analysis.
+  - Save milestones + summary into the selected project in localStorage.
+  - Render timeline inside Project Detail’s Timeline widget.
+  - Also display suggestedRoles as chips and allow assigning them to members (MVP: dropdown per role).
+
+D) UX style requirements (match wireframe vibe)
+- Minimalist, utilitarian, student-team dashboard.
+- No big hero marketing copy, no “Turn your syllabus into…” landing page.
+- Use simple cards, clear headers, light borders, lots of whitespace.
+- Must have left sidebar + top bar across app pages.
+
+E) MVP scope (avoid overbuilding)
+- No real email sending.
+- No real authentication backend.
+- No database.
+- Use localStorage + React state.
+- Provide mock data for Project 1/2 so the dashboard is not empty during development.
+
+Deliverable:
+- Update the app so navigating through login -> dashboard -> add project -> project detail matches the wireframes.
+- Keep code clean and componentized: Sidebar, TopBar, ProjectWidgets, TimelineWidget, AddProjectForm.

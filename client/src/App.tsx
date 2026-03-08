@@ -1,52 +1,87 @@
-import { Switch, Route } from "wouter";
-import { useState, useEffect, useCallback } from "react";
-import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import Home from "@/pages/home";
-import Project from "@/pages/project";
-import NotFound from "@/pages/not-found";
-import type { SyllabusAnalysis } from "@shared/schema";
+import { Route, useLocation, Redirect, Router } from "wouter";
+import { useState, useCallback, useMemo } from "react";
+import { isLoggedIn, seedMockData } from "@/lib/store";
+import LoginPage from "@/pages/login";
+import Dashboard from "@/pages/dashboard";
+import AddProjectPage from "@/pages/add-project";
+import ProjectDetail from "@/pages/project-detail";
+import AccountPage from "@/pages/account";
+import TopBar from "@/components/TopBar";
+import Sidebar from "@/components/Sidebar";
 
-const STORAGE_KEY = "syllabus-analysis";
+seedMockData();
 
-function App() {
-  const [analysis, setAnalysis] = useState<SyllabusAnalysis | null>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
-  });
+function AppContent({ refreshKey, triggerRefresh }: { refreshKey: number; triggerRefresh: () => void }) {
+  const [location] = useLocation();
 
-  useEffect(() => {
-    if (analysis) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(analysis));
-    }
-  }, [analysis]);
+  const projectMatch = location.match(/^\/app\/projects\/([^/]+)$/);
+  const isNewProject = location === "/app/projects/new";
+  const isAccount = location === "/app/account";
+  const isDashboard = location === "/app" || location === "/app/";
 
-  const handleAnalysisComplete = useCallback((data: SyllabusAnalysis) => {
-    setAnalysis(data);
+  if (isNewProject) {
+    return <AddProjectPage onProjectCreated={triggerRefresh} />;
+  }
+
+  if (projectMatch && projectMatch[1] !== "new") {
+    return (
+      <ProjectDetail
+        projectId={projectMatch[1]}
+        refreshKey={refreshKey}
+        onProjectUpdated={triggerRefresh}
+      />
+    );
+  }
+
+  if (isAccount) {
+    return <AccountPage />;
+  }
+
+  return <Dashboard refreshKey={refreshKey} />;
+}
+
+function AppLayout() {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const triggerRefresh = useCallback(() => {
+    setRefreshKey((k) => k + 1);
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Switch>
-          <Route path="/">
-            <Home onAnalysisComplete={handleAnalysisComplete} />
-          </Route>
-          <Route path="/project/results">
-            <Project analysis={analysis} />
-          </Route>
-          <Route component={NotFound} />
-        </Switch>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <div className="flex h-screen flex-col bg-background">
+      <TopBar />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar
+          collapsed={sidebarCollapsed}
+          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+          refreshKey={refreshKey}
+        />
+        <AppContent refreshKey={refreshKey} triggerRefresh={triggerRefresh} />
+      </div>
+    </div>
   );
+}
+
+function App() {
+  const [location] = useLocation();
+
+  if (location === "/login") {
+    if (isLoggedIn()) {
+      return <Redirect to="/app" />;
+    }
+    return <LoginPage />;
+  }
+
+  if (!isLoggedIn()) {
+    return <Redirect to="/login" />;
+  }
+
+  if (location.startsWith("/app")) {
+    return <AppLayout />;
+  }
+
+  return <Redirect to="/app" />;
 }
 
 export default App;
