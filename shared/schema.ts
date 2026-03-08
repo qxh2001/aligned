@@ -1,18 +1,29 @@
-import { sql } from "drizzle-orm";
-import { pgTable, text, varchar } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+export const milestoneSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  date: z.string(),
+  type: z.enum(["assignment", "exam", "project", "reading", "lab", "presentation", "other"]),
+  weight: z.string().optional(),
+  tips: z.string().optional(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+export const syllabusAnalysisSchema = z.object({
+  courseName: z.string(),
+  courseCode: z.string().optional(),
+  instructor: z.string().optional(),
+  semester: z.string().optional(),
+  milestones: z.array(milestoneSchema),
+  summary: z.string(),
 });
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
+export type Milestone = z.infer<typeof milestoneSchema>;
+export type SyllabusAnalysis = z.infer<typeof syllabusAnalysisSchema>;
+
+export interface AnalysisResponse {
+  success: boolean;
+  data?: SyllabusAnalysis;
+  error?: string;
+}
