@@ -7,7 +7,7 @@ A multi-project workspace for student teams. Features include AI-powered syllabu
 - **Frontend**: React + Vite + Tailwind CSS + wouter routing
 - **Backend**: Express.js API server with PostgreSQL (Drizzle ORM)
 - **AI**: Claude (Anthropic) via Replit AI Integrations
-- **Storage**: PostgreSQL database (Drizzle ORM with drizzle-kit)
+- **Storage**: Supabase PostgreSQL (Drizzle ORM with drizzle-kit), falls back to local DATABASE_URL
 - **Auth**: Email + password (bcrypt), session-based (express-session + connect-pg-simple + Passport.js local strategy)
 - **Real-time**: Server-Sent Events (SSE) for live project updates
 
@@ -94,10 +94,12 @@ A multi-project workspace for student teams. Features include AI-powered syllabu
 - Users can only see projects they are members of
 
 ## Environment Variables
-- `DATABASE_URL` - PostgreSQL connection string
+- `SUPABASE_DATABASE_URL` - Supabase PostgreSQL pooler connection string (preferred)
+- `DATABASE_URL` - Fallback PostgreSQL connection string (used if SUPABASE_DATABASE_URL not set)
 - `SESSION_SECRET` - Express session secret
-- `AI_INTEGRATIONS_ANTHROPIC_API_KEY` - Claude API key
-- `AI_INTEGRATIONS_ANTHROPIC_BASE_URL` - Claude API base URL
+- `ANTHROPIC_API_KEY` - Direct Anthropic API key (preferred)
+- `AI_INTEGRATIONS_ANTHROPIC_API_KEY` - Fallback Anthropic key via Replit AI Integrations
+- `AI_INTEGRATIONS_ANTHROPIC_BASE_URL` - Fallback Anthropic base URL via Replit AI Integrations
 
 ## Dependencies
 - `pdf-parse`, `multer`, `@anthropic-ai/sdk`, `react-icons`
