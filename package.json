@@ -9,7 +9,7 @@
     "start": "NODE_ENV=production node dist/index.cjs",
     "check": "tsc",
     "db:push": "drizzle-kit push",
-    "vercel-build": "vite build && esbuild api/_index.ts --bundle --platform=node --format=cjs --outfile=api/index.js --external:bcrypt --external:bufferutil --external:utf-8-validate --external:pg-native --tsconfig=tsconfig.json --define:process.env.NODE_ENV='\"production\"'"
+    "vercel-build": "vite build && esbuild api/_index.ts --bundle --platform=node --format=cjs --outfile=api/index.cjs --external:bcrypt --external:bufferutil --external:utf-8-validate --external:pg-native --tsconfig=tsconfig.json --define:process.env.NODE_ENV='\"production\"'"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
