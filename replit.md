@@ -1,7 +1,7 @@
 # Aligned - Student Team Coordination Tool
 
 ## Overview
-A multi-project workspace for student teams. Features include AI-powered syllabus analysis, team coordination widgets, role assignment, document organizer, invite links, and timeline management.
+A multi-project workspace for student teams. Features include AI-powered syllabus analysis, team coordination widgets, communication channels, document organizer, invite links, and timeline management.
 
 ## Architecture
 - **Frontend**: React + Vite + Tailwind CSS + wouter routing
@@ -11,19 +11,21 @@ A multi-project workspace for student teams. Features include AI-powered syllabu
 - **Auth**: Fake auth via localStorage (MVP)
 
 ## Design System
-- **Background**: Warm off-white (#FAFAF8)
+- **Theme**: Lavender/purple (#C5BAE0 base, HSL 260)
+- **Primary**: HSL 260 35% 58%
+- **Background**: HSL 260 20% 97%
 - **Cards**: Glassmorphism-lite (glass-card utility class)
 - **Fonts**: Syne (display/headings), DM Sans (body)
-- **Accent**: Indigo (234 85% 55%)
 - **Corners**: 12-16px rounded (rounded-xl/2xl)
 - **Shadows**: Soft, layered drop shadows
 - **Schema version**: v2 (localStorage cleared on schema change)
 
 ## Routes
 - `/login` - Login/signup page (fake auth)
-- `/app` - Dashboard with vertical timeline + action items
+- `/join/:inviteCode` - Join project via invite link
+- `/app` - Dashboard with upcoming deadlines + action items
 - `/app/projects/new` - Create new project form
-- `/app/projects/:id` - Project detail with tabs (Overview, Documents, Timeline)
+- `/app/projects/:id` - Project detail (single scrollable page)
 - `/app/account` - Account settings page
 
 ## Key Files
@@ -36,21 +38,23 @@ A multi-project workspace for student teams. Features include AI-powered syllabu
 - `client/src/components/ToolIcon.tsx` - Tool icons (Google Drive, Notion, GitHub, Figma, etc.)
 - `client/src/components/TimelineWidget.tsx` - Milestone timeline with vertical spine
 - `client/src/pages/login.tsx` - Glass-card login form
-- `client/src/pages/dashboard.tsx` - Vertical timeline + action items (no todos)
+- `client/src/pages/join.tsx` - Join project via invite code
+- `client/src/pages/dashboard.tsx` - Upcoming deadlines (flat list with date+day) + action items
 - `client/src/pages/add-project.tsx` - New project creation with syllabus upload
-- `client/src/pages/project-detail.tsx` - Tabbed project view (Overview, Docs, Timeline)
+- `client/src/pages/project-detail.tsx` - Single page: People, Communication Channels, Documents, Timeline
 - `client/src/pages/account.tsx` - User settings
 
 ## Data Model (localStorage)
-Project: id, name, description, inviteCode, members[{email, name, tags[]}], milestones[], roles[], documents[{id, label, url, tool}], schedulerLink, actionItems[], summary, archived, createdAt
+Project: id, name, description, inviteCode, members[{email, name, tags[]}], milestones[], roles[], documents[{id, label, url, tool}], actionItems[], summary, archived, createdAt
 
 ## Features
-- **No To-Do List**: Removed; Action Items kept
-- **Add Project**: Button labeled "Add Project" (not generic "Add")
-- **Documents**: Per-project document organizer with 10 tool icons (GDrive, Notion, GitHub, Figma, Dropbox, Confluence, Slack, Jira, Loom, Airtable)
-- **Invite Link**: Per-project shareable invite URL with copy button
-- **People**: Read-only member list (join via invite), removable, with freeform pill-shaped tags
-- **Vertical Timeline**: Weekly spine with day nodes, today highlighted, overflow section
+- **Dashboard**: Flat "Upcoming Deadlines" list with date + day-of-week, Action Items widget
+- **Project Detail**: Single scrollable page (no tabs), invite button in header
+- **Communication Channels**: Card with 6 messaging app icons (WhatsApp, iMessage, Line, KakaoTalk, WeChat, Instagram)
+- **Documents**: Per-project document organizer with 10 tool icons
+- **Invite Link**: Per-project shareable invite URL with compact copy button in header
+- **People**: Member list with freeform pill-shaped tags
+- **Timeline**: Milestone timeline with type badges
 
 ## API
 - `POST /api/analyze-syllabus` - Accepts PDF upload (<=10MB) or text field

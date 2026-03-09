@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import {
-  getProject, updateProject, attachAnalysis,
+  getProject, attachAnalysis,
   addDocument, removeDocument, removeMember, updateMemberTags
 } from "@/lib/store";
 import type { Project, ToolType } from "@shared/schema";
@@ -9,8 +9,9 @@ import TimelineWidget from "@/components/TimelineWidget";
 import ToolIcon, { getToolMeta, getToolList } from "@/components/ToolIcon";
 import {
   FileText, Calendar, Users, Upload, Loader2, AlertCircle, X, BookOpen,
-  Plus, ExternalLink, Copy, Check, Trash2, Link2
+  Plus, ExternalLink, Copy, Check, Trash2, Link2, MessageCircle
 } from "lucide-react";
+import { SiWhatsapp, SiLine, SiKakaotalk, SiWechat, SiInstagram } from "react-icons/si";
 
 function ProgressBar({ milestones }: { milestones: Project["milestones"] }) {
   if (milestones.length === 0) return null;
@@ -265,43 +266,37 @@ function DocumentsWidget({ project, onUpdate }: { project: Project; onUpdate: ()
   );
 }
 
-function RolesWidget({ project, onUpdate }: { project: Project; onUpdate: () => void }) {
-  const assignRole = (roleName: string, email: string | null) => {
-    const roles = project.roles.map((r) =>
-      r.roleName === roleName ? { ...r, assignedToEmail: email } : r
-    );
-    updateProject(project.id, { roles });
-    onUpdate();
-  };
+const channelApps = [
+  { key: "whatsapp", label: "WhatsApp", icon: SiWhatsapp, color: "#25D366" },
+  { key: "imessage", label: "iMessage", icon: MessageCircle, color: "#34C759" },
+  { key: "line", label: "Line", icon: SiLine, color: "#06C755" },
+  { key: "kakaotalk", label: "KakaoTalk", icon: SiKakaotalk, color: "#FFE812" },
+  { key: "wechat", label: "WeChat", icon: SiWechat, color: "#07C160" },
+  { key: "instagram", label: "Instagram", icon: SiInstagram, color: "#E4405F" },
+];
 
+function CommunicationChannels() {
   return (
-    <div className="glass-card rounded-2xl p-5" data-testid="widget-roles">
+    <div className="glass-card rounded-2xl p-5" data-testid="widget-channels">
       <h3 className="font-display text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-        <Users className="h-4 w-4 text-primary" />
-        Roles
+        <MessageCircle className="h-4 w-4 text-primary" />
+        Communication Channels
       </h3>
-      {project.roles.length === 0 ? (
-        <p className="text-xs text-muted-foreground">No roles yet. Upload a syllabus to get suggestions.</p>
-      ) : (
-        <div className="space-y-2.5">
-          {project.roles.map((role) => (
-            <div key={role.roleName} className="flex items-center justify-between gap-2" data-testid={`role-${role.roleName}`}>
-              <span className="text-sm text-foreground">{role.roleName}</span>
-              <select
-                value={role.assignedToEmail || ""}
-                onChange={(e) => assignRole(role.roleName, e.target.value || null)}
-                className="rounded-xl border border-border/60 bg-white px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 max-w-[180px] transition-all"
-                data-testid={`select-role-${role.roleName}`}
-              >
-                <option value="">Unassigned</option>
-                {project.members.map((m) => (
-                  <option key={m.email} value={m.email}>{m.name}</option>
-                ))}
-              </select>
+      <div className="flex flex-wrap gap-3">
+        {channelApps.map((app) => {
+          const Icon = app.icon;
+          return (
+            <div
+              key={app.key}
+              className="flex flex-col items-center gap-1.5 rounded-xl bg-white/60 border border-border/30 p-3 w-[72px] transition-all hover:shadow-sm"
+              data-testid={`channel-${app.key}`}
+            >
+              <Icon className="h-6 w-6" style={{ color: app.color }} />
+              <span className="text-[10px] text-muted-foreground text-center leading-tight">{app.label}</span>
             </div>
-          ))}
-        </div>
-      )}
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -472,7 +467,7 @@ export default function ProjectDetail({ projectId, refreshKey, onProjectUpdated 
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <PeopleSection project={project} onUpdate={refresh} />
-          <RolesWidget project={project} onUpdate={refresh} />
+          <CommunicationChannels />
         </div>
 
         <DocumentsWidget project={project} onUpdate={refresh} />
