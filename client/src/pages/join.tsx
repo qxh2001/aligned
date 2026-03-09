@@ -18,7 +18,7 @@ export default function JoinPage({ inviteCode }: JoinPageProps) {
 
   if (!project) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FAFAF8] p-4">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="text-center max-w-sm">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-destructive/10">
             <XCircle className="h-6 w-6 text-destructive" />
@@ -59,7 +59,7 @@ export default function JoinPage({ inviteCode }: JoinPageProps) {
 
   if (status === "success") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FAFAF8] p-4">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="text-center max-w-sm">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100">
             <CheckCircle className="h-6 w-6 text-emerald-600" />
@@ -72,7 +72,7 @@ export default function JoinPage({ inviteCode }: JoinPageProps) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FAFAF8] p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <h1 className="font-display text-2xl font-bold text-foreground tracking-tight">Join Project</h1>

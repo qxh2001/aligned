@@ -21,7 +21,7 @@ export default function Sidebar({ collapsed, onToggle, refreshKey }: SidebarProp
 
   if (collapsed) {
     return (
-      <aside className="flex w-14 flex-col items-center border-r border-border/60 bg-[#F8F7F4] py-4 gap-2 shrink-0">
+      <aside className="flex w-14 flex-col items-center border-r border-border/60 bg-sidebar py-4 gap-2 shrink-0">
         <button
           onClick={onToggle}
           className="flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-white hover:text-foreground"
@@ -67,7 +67,7 @@ export default function Sidebar({ collapsed, onToggle, refreshKey }: SidebarProp
   }
 
   return (
-    <aside className="flex w-60 flex-col border-r border-border/60 bg-[#F8F7F4] shrink-0" data-testid="sidebar">
+    <aside className="flex w-60 flex-col border-r border-border/60 bg-sidebar shrink-0" data-testid="sidebar">
       <div className="flex items-center justify-between px-4 py-4">
         <span className="font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground">Projects</span>
         <button

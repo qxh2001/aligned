@@ -2,14 +2,14 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import {
   getProject, updateProject, attachAnalysis,
-  addDocument, removeDocument, removeMember, updateMemberTags, addMemberViaInvite
+  addDocument, removeDocument, removeMember, updateMemberTags
 } from "@/lib/store";
 import type { Project, ToolType } from "@shared/schema";
 import TimelineWidget from "@/components/TimelineWidget";
 import ToolIcon, { getToolMeta, getToolList } from "@/components/ToolIcon";
 import {
   FileText, Calendar, Users, Upload, Loader2, AlertCircle, X, BookOpen,
-  Plus, ExternalLink, Copy, Check, Trash2, Link2, UserPlus
+  Plus, ExternalLink, Copy, Check, Trash2, Link2
 } from "lucide-react";
 
 function ProgressBar({ milestones }: { milestones: Project["milestones"] }) {
@@ -27,21 +27,8 @@ function ProgressBar({ milestones }: { milestones: Project["milestones"] }) {
   );
 }
 
-function ProjectInfoHeader({ project, onUpdate }: { project: Project; onUpdate: () => void }) {
-  const [editingDesc, setEditingDesc] = useState(false);
-  const [desc, setDesc] = useState(project.description);
+function InviteButton({ project }: { project: Project }) {
   const [copied, setCopied] = useState(false);
-  const [addingTag, setAddingTag] = useState<string | null>(null);
-  const [newTag, setNewTag] = useState("");
-
-  useEffect(() => { setDesc(project.description); }, [project.description]);
-
-  const saveDesc = () => {
-    updateProject(project.id, { description: desc });
-    setEditingDesc(false);
-    onUpdate();
-  };
-
   const inviteUrl = `${window.location.origin}/join/${project.inviteCode}`;
 
   const copyInvite = () => {
@@ -49,6 +36,22 @@ function ProjectInfoHeader({ project, onUpdate }: { project: Project; onUpdate: 
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  return (
+    <button
+      onClick={copyInvite}
+      className="inline-flex items-center gap-1.5 rounded-xl border border-border/60 bg-white px-3 py-2 text-xs font-medium text-foreground shadow-sm transition-all hover:shadow-md active:scale-[0.98]"
+      data-testid="button-copy-invite"
+      title={inviteUrl}
+    >
+      {copied ? <><Check className="h-3.5 w-3.5 text-emerald-500" /> Copied</> : <><Link2 className="h-3.5 w-3.5" /> Invite</>}
+    </button>
+  );
+}
+
+function PeopleSection({ project, onUpdate }: { project: Project; onUpdate: () => void }) {
+  const [addingTag, setAddingTag] = useState<string | null>(null);
+  const [newTag, setNewTag] = useState("");
 
   const handleRemoveMember = (email: string) => {
     removeMember(project.id, email);
@@ -59,8 +62,7 @@ function ProjectInfoHeader({ project, onUpdate }: { project: Project; onUpdate: 
     if (!newTag.trim()) return;
     const member = project.members.find((m) => m.email === email);
     if (!member) return;
-    const tags = [...member.tags, newTag.trim()];
-    updateMemberTags(project.id, email, tags);
+    updateMemberTags(project.id, email, [...member.tags, newTag.trim()]);
     setNewTag("");
     setAddingTag(null);
     onUpdate();
@@ -69,126 +71,82 @@ function ProjectInfoHeader({ project, onUpdate }: { project: Project; onUpdate: 
   const handleRemoveTag = (email: string, tag: string) => {
     const member = project.members.find((m) => m.email === email);
     if (!member) return;
-    const tags = member.tags.filter((t) => t !== tag);
-    updateMemberTags(project.id, email, tags);
+    updateMemberTags(project.id, email, member.tags.filter((t) => t !== tag));
     onUpdate();
   };
 
   return (
-    <div className="glass-card rounded-2xl p-5 space-y-5" data-testid="widget-project-info">
-      <div>
-        <h3 className="font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 mb-2">Description</h3>
-        {editingDesc ? (
-          <div className="space-y-2">
-            <textarea
-              value={desc}
-              onChange={(e) => setDesc(e.target.value)}
-              rows={3}
-              className="w-full rounded-xl border border-border/60 bg-white px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-y"
-              data-testid="input-project-description-edit"
-            />
-            <div className="flex gap-2">
-              <button onClick={saveDesc} className="rounded-xl bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground transition-all hover:shadow-sm" data-testid="button-save-description">Save</button>
-              <button onClick={() => { setEditingDesc(false); setDesc(project.description); }} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
-            </div>
-          </div>
-        ) : (
-          <p
-            onClick={() => setEditingDesc(true)}
-            className="text-sm text-foreground/80 leading-relaxed cursor-pointer hover:bg-white/60 rounded-lg px-2 py-1.5 -mx-2 transition-colors"
-            data-testid="text-project-description"
-          >
-            {project.description || "Click to add a description..."}
-          </p>
-        )}
-      </div>
-
-      <div className="border-t border-border/30 pt-4">
-        <h3 className="font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 mb-2">Invitation Link</h3>
-        <div className="flex items-center gap-2">
-          <div className="flex-1 flex items-center gap-2 rounded-xl border border-border/40 bg-white/60 px-3 py-2 text-xs text-muted-foreground font-mono truncate" data-testid="text-invite-link">
-            <Link2 className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">{inviteUrl}</span>
-          </div>
-          <button
-            onClick={copyInvite}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition-all hover:shadow-sm active:scale-[0.98]"
-            data-testid="button-copy-invite"
-          >
-            {copied ? <><Check className="h-3.5 w-3.5" /> Copied</> : <><Copy className="h-3.5 w-3.5" /> Invite</>}
-          </button>
-        </div>
-      </div>
-
-      <div className="border-t border-border/30 pt-4">
-        <h3 className="font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 mb-3">People</h3>
-        {project.members.length === 0 ? (
-          <p className="text-xs text-muted-foreground">No members yet. Share the invite link above to add people.</p>
-        ) : (
-          <div className="space-y-3">
-            {project.members.map((m) => (
-              <div key={m.email} className="flex items-start gap-3 group" data-testid={`member-${m.email}`}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-xs font-bold text-primary shrink-0 mt-0.5">
-                  {m.name.charAt(0).toUpperCase()}
+    <div className="glass-card rounded-2xl p-5" data-testid="widget-people">
+      <h3 className="font-display text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+        <Users className="h-4 w-4 text-primary" />
+        People
+      </h3>
+      {project.members.length === 0 ? (
+        <p className="text-xs text-muted-foreground">No members yet. Share the invite link to add people.</p>
+      ) : (
+        <div className="space-y-3">
+          {project.members.map((m) => (
+            <div key={m.email} className="flex items-start gap-3 group" data-testid={`member-${m.email}`}>
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-xs font-bold text-primary shrink-0 mt-0.5">
+                {m.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-foreground">{m.name}</span>
+                  <span className="text-xs text-muted-foreground">{m.email}</span>
+                  <button
+                    onClick={() => handleRemoveMember(m.email)}
+                    className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all ml-auto"
+                    data-testid={`button-remove-member-${m.email}`}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-foreground">{m.name}</span>
-                    <span className="text-xs text-muted-foreground">{m.email}</span>
-                    <button
-                      onClick={() => handleRemoveMember(m.email)}
-                      className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all ml-auto"
-                      data-testid={`button-remove-member-${m.email}`}
+                <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                  {m.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-[11px] font-medium group/tag"
+                      data-testid={`tag-${m.email}-${tag}`}
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                    {m.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-[11px] font-medium group/tag"
-                        data-testid={`tag-${m.email}-${tag}`}
-                      >
-                        {tag}
-                        <button
-                          onClick={() => handleRemoveTag(m.email, tag)}
-                          className="opacity-0 group-hover/tag:opacity-100 transition-opacity"
-                        >
-                          <X className="h-2.5 w-2.5" />
-                        </button>
-                      </span>
-                    ))}
-                    {addingTag === m.email ? (
-                      <div className="flex items-center gap-1">
-                        <input
-                          value={newTag}
-                          onChange={(e) => setNewTag(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === "Enter") handleAddTag(m.email); if (e.key === "Escape") setAddingTag(null); }}
-                          placeholder="Tag..."
-                          className="w-20 rounded-full border border-border/60 bg-white px-2.5 py-0.5 text-[11px] focus:outline-none focus:ring-1 focus:ring-primary/30"
-                          data-testid={`input-tag-${m.email}`}
-                          autoFocus
-                        />
-                        <button onClick={() => handleAddTag(m.email)} className="text-primary"><Check className="h-3 w-3" /></button>
-                        <button onClick={() => setAddingTag(null)} className="text-muted-foreground"><X className="h-3 w-3" /></button>
-                      </div>
-                    ) : (
+                      {tag}
                       <button
-                        onClick={() => { setAddingTag(m.email); setNewTag(""); }}
-                        className="rounded-full border border-dashed border-border/60 px-2 py-0.5 text-[10px] text-muted-foreground hover:border-primary/40 hover:text-primary transition-all"
-                        data-testid={`button-add-tag-${m.email}`}
+                        onClick={() => handleRemoveTag(m.email, tag)}
+                        className="opacity-0 group-hover/tag:opacity-100 transition-opacity"
                       >
-                        + tag
+                        <X className="h-2.5 w-2.5" />
                       </button>
-                    )}
-                  </div>
+                    </span>
+                  ))}
+                  {addingTag === m.email ? (
+                    <div className="flex items-center gap-1">
+                      <input
+                        value={newTag}
+                        onChange={(e) => setNewTag(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") handleAddTag(m.email); if (e.key === "Escape") setAddingTag(null); }}
+                        placeholder="Tag..."
+                        className="w-20 rounded-full border border-border/60 bg-white px-2.5 py-0.5 text-[11px] focus:outline-none focus:ring-1 focus:ring-primary/30"
+                        data-testid={`input-tag-${m.email}`}
+                        autoFocus
+                      />
+                      <button onClick={() => handleAddTag(m.email)} className="text-primary"><Check className="h-3 w-3" /></button>
+                      <button onClick={() => setAddingTag(null)} className="text-muted-foreground"><X className="h-3 w-3" /></button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => { setAddingTag(m.email); setNewTag(""); }}
+                      className="rounded-full border border-dashed border-border/60 px-2 py-0.5 text-[10px] text-muted-foreground hover:border-primary/40 hover:text-primary transition-all"
+                      data-testid={`button-add-tag-${m.email}`}
+                    >
+                      + tag
+                    </button>
+                  )}
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -308,9 +266,6 @@ function DocumentsWidget({ project, onUpdate }: { project: Project; onUpdate: ()
 }
 
 function RolesWidget({ project, onUpdate }: { project: Project; onUpdate: () => void }) {
-  const [addingRole, setAddingRole] = useState(false);
-  const [newRoleName, setNewRoleName] = useState("");
-
   const assignRole = (roleName: string, email: string | null) => {
     const roles = project.roles.map((r) =>
       r.roleName === roleName ? { ...r, assignedToEmail: email } : r
@@ -319,23 +274,14 @@ function RolesWidget({ project, onUpdate }: { project: Project; onUpdate: () => 
     onUpdate();
   };
 
-  const addRole = () => {
-    if (!newRoleName.trim()) return;
-    const roles = [...project.roles, { roleName: newRoleName.trim(), assignedToEmail: null }];
-    updateProject(project.id, { roles });
-    setNewRoleName("");
-    setAddingRole(false);
-    onUpdate();
-  };
-
   return (
     <div className="glass-card rounded-2xl p-5" data-testid="widget-roles">
       <h3 className="font-display text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
         <Users className="h-4 w-4 text-primary" />
-        Roles Assigned
+        Roles
       </h3>
-      {project.roles.length === 0 && !addingRole ? (
-        <p className="text-xs text-muted-foreground mb-2">No roles yet. Upload a syllabus to get suggestions.</p>
+      {project.roles.length === 0 ? (
+        <p className="text-xs text-muted-foreground">No roles yet. Upload a syllabus to get suggestions.</p>
       ) : (
         <div className="space-y-2.5">
           {project.roles.map((role) => (
@@ -356,26 +302,6 @@ function RolesWidget({ project, onUpdate }: { project: Project; onUpdate: () => 
           ))}
         </div>
       )}
-
-      {addingRole ? (
-        <div className="flex gap-2 mt-3">
-          <input
-            value={newRoleName}
-            onChange={(e) => setNewRoleName(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") addRole(); }}
-            placeholder="Role name"
-            className="flex-1 rounded-xl border border-border/60 bg-white px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-            data-testid="input-role-name"
-            autoFocus
-          />
-          <button onClick={addRole} className="rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-all hover:shadow-sm" data-testid="button-save-role">Add</button>
-          <button onClick={() => setAddingRole(false)} className="text-xs text-muted-foreground">Cancel</button>
-        </div>
-      ) : (
-        <button onClick={() => setAddingRole(true)} className="flex items-center gap-1.5 mt-3 text-xs text-muted-foreground hover:text-primary transition-colors" data-testid="button-add-role">
-          <Plus className="h-3.5 w-3.5" /> Add role
-        </button>
-      )}
     </div>
   );
 }
@@ -395,7 +321,6 @@ export default function ProjectDetail({ projectId, refreshKey, onProjectUpdated 
   const [pastedText, setPastedText] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState("");
-  const [activeTab, setActiveTab] = useState<"overview" | "docs" | "timeline">("overview");
 
   useEffect(() => {
     setProject(getProject(projectId));
@@ -449,45 +374,25 @@ export default function ProjectDetail({ projectId, refreshKey, onProjectUpdated 
     );
   }
 
-  const tabs = [
-    { key: "overview" as const, label: "Overview" },
-    { key: "docs" as const, label: "Documents" },
-    { key: "timeline" as const, label: "Timeline" },
-  ];
-
   return (
     <div className="flex-1 overflow-auto" data-testid="project-detail">
       <div className="border-b border-border/40 bg-white/60 backdrop-blur-sm px-5 sm:px-8 py-4">
-        <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-4 flex-1 min-w-0">
             <h1 className="font-display text-lg font-bold text-foreground truncate" data-testid="text-project-name">{project.name}</h1>
             <ProgressBar milestones={project.milestones} />
           </div>
-          <button
-            onClick={() => setShowUpload(!showUpload)}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-border/60 bg-white px-4 py-2 text-xs font-medium text-foreground shadow-sm transition-all hover:shadow-md active:scale-[0.98]"
-            data-testid="button-upload-syllabus"
-          >
-            <Upload className="h-3.5 w-3.5" />
-            {project.milestones.length > 0 ? "Re-upload Syllabus" : "Upload Syllabus"}
-          </button>
-        </div>
-
-        <div className="flex gap-1">
-          {tabs.map((tab) => (
+          <div className="flex items-center gap-2">
+            <InviteButton project={project} />
             <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-                activeTab === tab.key
-                  ? "bg-white text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground hover:bg-white/50"
-              }`}
-              data-testid={`tab-${tab.key}`}
+              onClick={() => setShowUpload(!showUpload)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-border/60 bg-white px-3 py-2 text-xs font-medium text-foreground shadow-sm transition-all hover:shadow-md active:scale-[0.98]"
+              data-testid="button-upload-syllabus"
             >
-              {tab.label}
+              <Upload className="h-3.5 w-3.5" />
+              {project.milestones.length > 0 ? "Re-upload Syllabus" : "Upload Syllabus"}
             </button>
-          ))}
+          </div>
         </div>
       </div>
 
@@ -565,31 +470,25 @@ export default function ProjectDetail({ projectId, refreshKey, onProjectUpdated 
           </div>
         )}
 
-        {activeTab === "overview" && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            <ProjectInfoHeader project={project} onUpdate={refresh} />
-            <RolesWidget project={project} onUpdate={refresh} />
-          </div>
-        )}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <PeopleSection project={project} onUpdate={refresh} />
+          <RolesWidget project={project} onUpdate={refresh} />
+        </div>
 
-        {activeTab === "docs" && (
-          <DocumentsWidget project={project} onUpdate={refresh} />
-        )}
+        <DocumentsWidget project={project} onUpdate={refresh} />
 
-        {activeTab === "timeline" && (
-          <div className="glass-card rounded-2xl p-5" data-testid="widget-timeline">
-            <h3 className="font-display text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-primary" />
-              Timeline
-            </h3>
-            <TimelineWidget
-              milestones={project.milestones}
-              summary={project.summary}
-              onRegenerate={() => setShowUpload(true)}
-              isRegenerating={analyzing}
-            />
-          </div>
-        )}
+        <div className="glass-card rounded-2xl p-5" data-testid="widget-timeline">
+          <h3 className="font-display text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-primary" />
+            Timeline
+          </h3>
+          <TimelineWidget
+            milestones={project.milestones}
+            summary={project.summary}
+            onRegenerate={() => setShowUpload(true)}
+            isRegenerating={analyzing}
+          />
+        </div>
       </div>
     </div>
   );
