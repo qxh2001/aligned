@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
-import { PDFParse } from "pdf-parse";
+import pdfParse from "pdf-parse";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import passport from "passport";
@@ -16,8 +16,7 @@ import { addClient, broadcast } from "./realtime";
 import Anthropic from "@anthropic-ai/sdk";
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
-  const parser = new PDFParse({ data: new Uint8Array(buffer) });
-  const result = await parser.getText();
+  const result = await pdfParse(buffer);
   return result.text;
 }
 
