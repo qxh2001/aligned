@@ -45,12 +45,12 @@ A multi-project workspace for student teams. Features include AI-powered syllabu
 - `client/src/pages/account.tsx` - User settings
 
 ## Data Model (localStorage)
-Project: id, name, description, inviteCode, members[{email, name, tags[]}], milestones[], roles[], documents[{id, label, url, tool}], actionItems[], summary, archived, createdAt
+Project: id, name, description, inviteCode, members[{email, name, tags[]}], milestones[], roles[], channels[{appKey, label, iconUrl?, link?}], documents[{id, label, url, tool}], actionItems[], summary, archived, createdAt
 
 ## Features
 - **Dashboard**: Flat "Upcoming Deadlines" list with date + day-of-week, Action Items widget
 - **Project Detail**: Single scrollable page (no tabs), invite button in header
-- **Communication Channels**: Card with 6 messaging app icons (WhatsApp, iMessage, Line, KakaoTalk, WeChat, Instagram)
+- **Communication Channels**: Modal picker with 15 built-in apps (Slack, Discord, Teams, WhatsApp, Telegram, Email, Zoom, Google Meet, Loom, Line, Instagram, WeChat, KakaoTalk, Messenger, iMessage) + custom app support. Selected channels show as icon badges with optional link/handle attachment and "Open" button.
 - **Documents**: Per-project document organizer with 10 tool icons
 - **Invite Link**: Per-project shareable invite URL with compact copy button in header
 - **People**: Member list with freeform pill-shaped tags

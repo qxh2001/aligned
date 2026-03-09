@@ -49,6 +49,13 @@ export interface ProjectRole {
   assignedToEmail: string | null;
 }
 
+export interface ChannelEntry {
+  appKey: string;
+  label: string;
+  iconUrl?: string;
+  link?: string;
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -57,6 +64,7 @@ export interface Project {
   members: ProjectMember[];
   milestones: Milestone[];
   roles: ProjectRole[];
+  channels: ChannelEntry[];
   documents: DocEntry[];
   schedulerLink: string | null;
   actionItems: string[];

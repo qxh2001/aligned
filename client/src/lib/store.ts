@@ -1,4 +1,4 @@
-import type { Project, Milestone, ProjectRole, DocEntry, ToolType, ProjectMember } from "@shared/schema";
+import type { Project, Milestone, ProjectRole, DocEntry, ToolType, ProjectMember, ChannelEntry } from "@shared/schema";
 
 const PROJECTS_KEY = "aligned-projects";
 const AUTH_KEY = "aligned-auth";
@@ -62,6 +62,7 @@ export function createProject(data: {
     members: [],
     milestones: [],
     roles: [],
+    channels: [],
     documents: [],
     schedulerLink: null,
     actionItems: [],
@@ -134,6 +135,19 @@ export function removeMember(projectId: string, email: string): Project | undefi
   return updateProject(projectId, { members });
 }
 
+export function updateChannels(projectId: string, channels: ChannelEntry[]): Project | undefined {
+  return updateProject(projectId, { channels });
+}
+
+export function updateChannelLink(projectId: string, appKey: string, link: string): Project | undefined {
+  const project = getProject(projectId);
+  if (!project) return undefined;
+  const channels = (project.channels ?? []).map((c) =>
+    c.appKey === appKey ? { ...c, link } : c
+  );
+  return updateProject(projectId, { channels });
+}
+
 export function updateMemberTags(projectId: string, email: string, tags: string[]): Project | undefined {
   const project = getProject(projectId);
   if (!project) return undefined;
@@ -169,6 +183,7 @@ export function seedMockData(): void {
         { roleName: "Developer", assignedToEmail: "bob@university.edu" },
         { roleName: "Documentation", assignedToEmail: null },
       ],
+      channels: [],
       documents: [
         { id: "d1", label: "Project Repo", url: "https://github.com/team/cs301-project", tool: "github" },
         { id: "d2", label: "Design Files", url: "https://figma.com/file/abc123", tool: "figma" },
@@ -196,6 +211,7 @@ export function seedMockData(): void {
         { roleName: "Speaker", assignedToEmail: "charlie@university.edu" },
         { roleName: "Researcher", assignedToEmail: null },
       ],
+      channels: [],
       documents: [
         { id: "d1", label: "Research Notes", url: "https://notion.so/comm210-notes", tool: "notion" },
       ],

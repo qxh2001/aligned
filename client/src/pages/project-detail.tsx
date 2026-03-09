@@ -1,17 +1,363 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import {
   getProject, attachAnalysis,
-  addDocument, removeDocument, removeMember, updateMemberTags
+  addDocument, removeDocument, removeMember, updateMemberTags,
+  updateChannels, updateChannelLink
 } from "@/lib/store";
-import type { Project, ToolType } from "@shared/schema";
+import type { Project, ToolType, ChannelEntry } from "@shared/schema";
 import TimelineWidget from "@/components/TimelineWidget";
 import ToolIcon, { getToolMeta, getToolList } from "@/components/ToolIcon";
 import {
   FileText, Calendar, Users, Upload, Loader2, AlertCircle, X, BookOpen,
-  Plus, ExternalLink, Copy, Check, Trash2, Link2, MessageCircle
+  Plus, ExternalLink, Copy, Check, Trash2, Link2, MessageCircle, Settings, ArrowRight, Image
 } from "lucide-react";
-import { SiWhatsapp, SiLine, SiKakaotalk, SiWechat, SiInstagram } from "react-icons/si";
+import {
+  SiWhatsapp, SiLine, SiKakaotalk, SiWechat, SiInstagram,
+  SiSlack, SiDiscord, SiTelegram, SiZoom,
+  SiGooglemeet, SiLoom, SiMessenger
+} from "react-icons/si";
+import type { IconType } from "react-icons";
+
+const BUILTIN_APPS: { key: string; label: string; icon: IconType | null; color: string }[] = [
+  { key: "slack", label: "Slack", icon: SiSlack, color: "#4A154B" },
+  { key: "discord", label: "Discord", icon: SiDiscord, color: "#5865F2" },
+  { key: "teams", label: "Microsoft Teams", icon: null, color: "#6264A7" },
+  { key: "whatsapp", label: "WhatsApp", icon: SiWhatsapp, color: "#25D366" },
+  { key: "telegram", label: "Telegram", icon: SiTelegram, color: "#26A5E4" },
+  { key: "email", label: "Email", icon: null, color: "#6366F1" },
+  { key: "zoom", label: "Zoom", icon: SiZoom, color: "#0B5CFF" },
+  { key: "googlemeet", label: "Google Meet", icon: SiGooglemeet, color: "#00897B" },
+  { key: "loom", label: "Loom", icon: SiLoom, color: "#625DF5" },
+  { key: "line", label: "Line", icon: SiLine, color: "#06C755" },
+  { key: "instagram", label: "Instagram", icon: SiInstagram, color: "#E4405F" },
+  { key: "wechat", label: "WeChat", icon: SiWechat, color: "#07C160" },
+  { key: "kakaotalk", label: "KakaoTalk", icon: SiKakaotalk, color: "#FFE812" },
+  { key: "messenger", label: "Messenger", icon: SiMessenger, color: "#0084FF" },
+  { key: "imessage", label: "iMessage", icon: null, color: "#34C759" },
+];
+
+function ChannelIcon({ appKey, color, iconUrl, size = 24 }: { appKey: string; color: string; iconUrl?: string; size?: number }) {
+  if (iconUrl) {
+    return (
+      <img
+        src={iconUrl}
+        alt=""
+        className="rounded"
+        style={{ width: size, height: size }}
+        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+      />
+    );
+  }
+  const builtin = BUILTIN_APPS.find((a) => a.key === appKey);
+  if (builtin?.icon) {
+    const Icon = builtin.icon;
+    return <Icon style={{ color, width: size, height: size }} />;
+  }
+  if (appKey === "email") {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: size, height: size }}>
+        <rect x="2" y="4" width="20" height="16" rx="2" />
+        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+      </svg>
+    );
+  }
+  if (appKey === "imessage") {
+    return <MessageCircle style={{ color, width: size, height: size }} />;
+  }
+  if (appKey === "teams") {
+    return (
+      <svg viewBox="0 0 24 24" style={{ width: size, height: size }} fill="none">
+        <rect width="24" height="24" rx="4" fill={color} />
+        <text x="12" y="17" textAnchor="middle" fill="white" fontSize="14" fontWeight="bold" fontFamily="sans-serif">T</text>
+      </svg>
+    );
+  }
+  return (
+    <div
+      className="flex items-center justify-center rounded-lg text-white font-bold"
+      style={{ width: size, height: size, backgroundColor: color, fontSize: size * 0.45 }}
+    >
+      {appKey.charAt(0).toUpperCase()}
+    </div>
+  );
+}
+
+function ChannelPickerModal({
+  selected,
+  onSave,
+  onClose,
+}: {
+  selected: ChannelEntry[];
+  onSave: (channels: ChannelEntry[]) => void;
+  onClose: () => void;
+}) {
+  const [picked, setPicked] = useState<Set<string>>(new Set(selected.map((c) => c.appKey)));
+  const [customApps, setCustomApps] = useState<{ key: string; label: string; iconUrl?: string }[]>(
+    selected.filter((c) => !BUILTIN_APPS.some((b) => b.key === c.appKey)).map((c) => ({ key: c.appKey, label: c.label, iconUrl: c.iconUrl }))
+  );
+  const [addingCustom, setAddingCustom] = useState(false);
+  const [customName, setCustomName] = useState("");
+  const [customIconUrl, setCustomIconUrl] = useState("");
+
+  const toggle = (key: string) => {
+    const next = new Set(picked);
+    if (next.has(key)) next.delete(key); else next.add(key);
+    setPicked(next);
+  };
+
+  const addCustom = () => {
+    if (!customName.trim()) return;
+    const key = "custom_" + customName.trim().toLowerCase().replace(/\s+/g, "_") + "_" + Date.now();
+    setCustomApps([...customApps, { key, label: customName.trim(), iconUrl: customIconUrl.trim() || undefined }]);
+    setPicked(new Set([...picked, key]));
+    setCustomName("");
+    setCustomIconUrl("");
+    setAddingCustom(false);
+  };
+
+  const handleSave = () => {
+    const channels: ChannelEntry[] = [];
+    picked.forEach((key) => {
+      const existing = selected.find((c) => c.appKey === key);
+      const builtin = BUILTIN_APPS.find((a) => a.key === key);
+      const custom = customApps.find((a) => a.key === key);
+      if (builtin) {
+        channels.push({ appKey: key, label: builtin.label, link: existing?.link });
+      } else if (custom) {
+        channels.push({ appKey: key, label: custom.label, iconUrl: custom.iconUrl, link: existing?.link });
+      }
+    });
+    onSave(channels);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose} data-testid="modal-channel-picker">
+      <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border/40">
+          <h2 className="font-display text-base font-semibold text-foreground">Set Up Channels</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors" data-testid="button-close-modal">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-auto p-5">
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+            {BUILTIN_APPS.map((app) => {
+              const isSelected = picked.has(app.key);
+              return (
+                <button
+                  key={app.key}
+                  onClick={() => toggle(app.key)}
+                  className={`relative flex flex-col items-center gap-2 rounded-xl p-3 transition-all border-2 ${
+                    isSelected
+                      ? "border-primary bg-primary/5 shadow-sm"
+                      : "border-border/30 bg-white hover:border-border/60 hover:shadow-sm"
+                  }`}
+                  data-testid={`picker-${app.key}`}
+                >
+                  {isSelected && (
+                    <div className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary">
+                      <Check className="h-2.5 w-2.5 text-white" />
+                    </div>
+                  )}
+                  <ChannelIcon appKey={app.key} color={app.color} size={28} />
+                  <span className="text-[11px] font-medium text-foreground text-center leading-tight">{app.label}</span>
+                </button>
+              );
+            })}
+
+            {customApps.map((app) => {
+              const isSelected = picked.has(app.key);
+              return (
+                <button
+                  key={app.key}
+                  onClick={() => toggle(app.key)}
+                  className={`relative flex flex-col items-center gap-2 rounded-xl p-3 transition-all border-2 ${
+                    isSelected
+                      ? "border-primary bg-primary/5 shadow-sm"
+                      : "border-border/30 bg-white hover:border-border/60 hover:shadow-sm"
+                  }`}
+                  data-testid={`picker-custom-${app.key}`}
+                >
+                  {isSelected && (
+                    <div className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary">
+                      <Check className="h-2.5 w-2.5 text-white" />
+                    </div>
+                  )}
+                  <ChannelIcon appKey={app.key} color="#8B5CF6" iconUrl={app.iconUrl} size={28} />
+                  <span className="text-[11px] font-medium text-foreground text-center leading-tight">{app.label}</span>
+                </button>
+              );
+            })}
+
+            {addingCustom ? (
+              <div className="col-span-full rounded-xl border-2 border-dashed border-border/60 p-4 space-y-3">
+                <input
+                  value={customName}
+                  onChange={(e) => setCustomName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") addCustom(); }}
+                  placeholder="App name"
+                  className="w-full rounded-lg border border-border/60 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  data-testid="input-custom-name"
+                  autoFocus
+                />
+                <div className="flex items-center gap-2">
+                  <Image className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <input
+                    value={customIconUrl}
+                    onChange={(e) => setCustomIconUrl(e.target.value)}
+                    placeholder="Logo URL (optional)"
+                    className="flex-1 rounded-lg border border-border/60 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    data-testid="input-custom-icon"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={addCustom} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground" data-testid="button-save-custom">Add</button>
+                  <button onClick={() => setAddingCustom(false)} className="text-xs text-muted-foreground">Cancel</button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setAddingCustom(true)}
+                className="flex flex-col items-center justify-center gap-2 rounded-xl p-3 border-2 border-dashed border-border/40 text-muted-foreground hover:border-primary/40 hover:text-primary transition-all"
+                data-testid="button-add-custom-app"
+              >
+                <Plus className="h-6 w-6" />
+                <span className="text-[11px] font-medium text-center leading-tight">Custom App</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-border/40">
+          <button onClick={onClose} className="rounded-xl px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
+          <button
+            onClick={handleSave}
+            className="rounded-xl bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:shadow-md active:scale-[0.98]"
+            data-testid="button-save-channels"
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CommunicationChannels({ project, onUpdate }: { project: Project; onUpdate: () => void }) {
+  const [showModal, setShowModal] = useState(false);
+  const [editingLink, setEditingLink] = useState<string | null>(null);
+  const [linkValue, setLinkValue] = useState("");
+  const linkInputRef = useRef<HTMLInputElement>(null);
+
+  const channels = project.channels || [];
+
+  const handleSaveChannels = (newChannels: ChannelEntry[]) => {
+    updateChannels(project.id, newChannels);
+    setShowModal(false);
+    onUpdate();
+  };
+
+  const handleSaveLink = (appKey: string) => {
+    updateChannelLink(project.id, appKey, linkValue.trim());
+    setEditingLink(null);
+    setLinkValue("");
+    onUpdate();
+  };
+
+  const startEditLink = (ch: ChannelEntry) => {
+    setEditingLink(ch.appKey);
+    setLinkValue(ch.link || "");
+    setTimeout(() => linkInputRef.current?.focus(), 50);
+  };
+
+  return (
+    <div className="glass-card rounded-2xl p-5" data-testid="widget-channels">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-display text-sm font-semibold text-foreground flex items-center gap-2">
+          <MessageCircle className="h-4 w-4 text-primary" />
+          Communication Channels
+        </h3>
+        {channels.length > 0 && (
+          <button
+            onClick={() => setShowModal(true)}
+            className="text-muted-foreground hover:text-primary transition-colors"
+            data-testid="button-edit-channels"
+            title="Edit channels"
+          >
+            <Settings className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
+      {channels.length === 0 ? (
+        <button
+          onClick={() => setShowModal(true)}
+          className="flex items-center gap-2 rounded-xl border border-dashed border-border/60 bg-white/60 px-4 py-3 text-sm text-muted-foreground hover:border-primary/40 hover:text-primary transition-all w-full justify-center"
+          data-testid="button-setup-channels"
+        >
+          <Plus className="h-4 w-4" />
+          Set Up Channels
+        </button>
+      ) : (
+        <div className="flex flex-wrap gap-3">
+          {channels.map((ch) => {
+            const builtin = BUILTIN_APPS.find((a) => a.key === ch.appKey);
+            const color = builtin?.color || "#8B5CF6";
+            return (
+              <div key={ch.appKey} className="flex flex-col items-center gap-1.5 w-[76px]" data-testid={`channel-${ch.appKey}`}>
+                <button
+                  onClick={() => startEditLink(ch)}
+                  className="flex flex-col items-center gap-1.5 rounded-xl bg-white/60 border border-border/30 p-3 w-full transition-all hover:shadow-sm hover:border-primary/30"
+                  data-testid={`channel-icon-${ch.appKey}`}
+                >
+                  <ChannelIcon appKey={ch.appKey} color={color} iconUrl={ch.iconUrl} size={24} />
+                  <span className="text-[10px] text-muted-foreground text-center leading-tight truncate w-full">{ch.label}</span>
+                </button>
+                {editingLink === ch.appKey ? (
+                  <div className="w-full space-y-1">
+                    <input
+                      ref={linkInputRef}
+                      value={linkValue}
+                      onChange={(e) => setLinkValue(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") handleSaveLink(ch.appKey); if (e.key === "Escape") setEditingLink(null); }}
+                      placeholder="Link or handle..."
+                      className="w-full rounded-lg border border-border/60 bg-white px-2 py-1 text-[10px] focus:outline-none focus:ring-1 focus:ring-primary/30"
+                      data-testid={`input-link-${ch.appKey}`}
+                    />
+                    <div className="flex gap-1 justify-center">
+                      <button onClick={() => handleSaveLink(ch.appKey)} className="text-primary"><Check className="h-3 w-3" /></button>
+                      <button onClick={() => setEditingLink(null)} className="text-muted-foreground"><X className="h-3 w-3" /></button>
+                    </div>
+                  </div>
+                ) : ch.link ? (
+                  <a
+                    href={ch.link.startsWith("http") ? ch.link : `https://${ch.link}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-0.5 text-[10px] text-primary hover:text-primary/80 transition-colors"
+                    data-testid={`link-open-${ch.appKey}`}
+                  >
+                    Open <ArrowRight className="h-2.5 w-2.5" />
+                  </a>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {showModal && (
+        <ChannelPickerModal
+          selected={channels}
+          onSave={handleSaveChannels}
+          onClose={() => setShowModal(false)}
+        />
+      )}
+    </div>
+  );
+}
 
 function ProgressBar({ milestones }: { milestones: Project["milestones"] }) {
   if (milestones.length === 0) return null;
@@ -266,41 +612,6 @@ function DocumentsWidget({ project, onUpdate }: { project: Project; onUpdate: ()
   );
 }
 
-const channelApps = [
-  { key: "whatsapp", label: "WhatsApp", icon: SiWhatsapp, color: "#25D366" },
-  { key: "imessage", label: "iMessage", icon: MessageCircle, color: "#34C759" },
-  { key: "line", label: "Line", icon: SiLine, color: "#06C755" },
-  { key: "kakaotalk", label: "KakaoTalk", icon: SiKakaotalk, color: "#FFE812" },
-  { key: "wechat", label: "WeChat", icon: SiWechat, color: "#07C160" },
-  { key: "instagram", label: "Instagram", icon: SiInstagram, color: "#E4405F" },
-];
-
-function CommunicationChannels() {
-  return (
-    <div className="glass-card rounded-2xl p-5" data-testid="widget-channels">
-      <h3 className="font-display text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-        <MessageCircle className="h-4 w-4 text-primary" />
-        Communication Channels
-      </h3>
-      <div className="flex flex-wrap gap-3">
-        {channelApps.map((app) => {
-          const Icon = app.icon;
-          return (
-            <div
-              key={app.key}
-              className="flex flex-col items-center gap-1.5 rounded-xl bg-white/60 border border-border/30 p-3 w-[72px] transition-all hover:shadow-sm"
-              data-testid={`channel-${app.key}`}
-            >
-              <Icon className="h-6 w-6" style={{ color: app.color }} />
-              <span className="text-[10px] text-muted-foreground text-center leading-tight">{app.label}</span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 interface ProjectDetailProps {
   projectId: string;
   refreshKey: number;
@@ -467,7 +778,7 @@ export default function ProjectDetail({ projectId, refreshKey, onProjectUpdated 
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <PeopleSection project={project} onUpdate={refresh} />
-          <CommunicationChannels />
+          <CommunicationChannels project={project} onUpdate={refresh} />
         </div>
 
         <DocumentsWidget project={project} onUpdate={refresh} />
