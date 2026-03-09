@@ -1,6 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { createServer } from "http";
-import { registerRoutes } from "../server/routes";
 
 const app = express();
 
@@ -18,6 +17,7 @@ const httpServer = createServer(app);
 let initError: any = null;
 
 const initPromise = (async () => {
+  const { registerRoutes } = await import("../server/routes");
   await registerRoutes(httpServer, app);
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -27,13 +27,13 @@ const initPromise = (async () => {
   });
 })().catch((err) => {
   initError = err;
-  console.error("Server initialization failed:", err);
+  console.error("Initialization failed:", err?.message, err?.stack);
 });
 
 export default async function handler(req: any, res: any) {
   await initPromise;
   if (initError) {
-    res.status(500).json({ message: initError.message || "Server initialization failed" });
+    res.status(500).json({ message: initError.message || "Initialization failed" });
     return;
   }
   app(req, res);
