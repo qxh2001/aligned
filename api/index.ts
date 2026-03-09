@@ -1,5 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { createServer } from "http";
+import { registerRoutes } from "../server/routes";
 
 const app = express();
 
@@ -17,7 +18,6 @@ const httpServer = createServer(app);
 let initError: any = null;
 
 const initPromise = (async () => {
-  const { registerRoutes } = await import("../server/routes");
   await registerRoutes(httpServer, app);
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
