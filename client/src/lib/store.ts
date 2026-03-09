@@ -157,6 +157,20 @@ export function updateMemberTags(projectId: string, email: string, tags: string[
   return updateProject(projectId, { members });
 }
 
+export function addActionItem(projectId: string, text: string): Project | undefined {
+  const project = getProject(projectId);
+  if (!project) return undefined;
+  const actionItems = [...(project.actionItems || []), text];
+  return updateProject(projectId, { actionItems });
+}
+
+export function removeActionItem(projectId: string, index: number): Project | undefined {
+  const project = getProject(projectId);
+  if (!project) return undefined;
+  const actionItems = (project.actionItems || []).filter((_, i) => i !== index);
+  return updateProject(projectId, { actionItems });
+}
+
 export function seedMockData(): void {
   const existing = getProjects();
   if (existing.length > 0) return;

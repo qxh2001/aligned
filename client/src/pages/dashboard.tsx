@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { useLocation } from "wouter";
-import { getProjects } from "@/lib/store";
-import { Plus, Zap, FolderOpen, Calendar } from "lucide-react";
+import { getProjects, addActionItem, removeActionItem } from "@/lib/store";
+import { Plus, Zap, FolderOpen, Calendar, Trash2, X, Check } from "lucide-react";
 import type { Project, Milestone } from "@shared/schema";
 
 function formatDate(dateStr: string): string {
@@ -74,43 +75,121 @@ function UpcomingDeadlines({ projects }: { projects: Project[] }) {
   );
 }
 
-function ActionItems({ projects }: { projects: Project[] }) {
-  const allActions = projects
-    .filter((p) => !p.archived)
-    .flatMap((p) => p.actionItems.map((a) => ({ text: a, projectName: p.name })))
-    .slice(0, 8);
+function ActionItems({ projects, onUpdate }: { projects: Project[]; onUpdate: () => void }) {
+  const [adding, setAdding] = useState(false);
+  const [newItem, setNewItem] = useState("");
+  const [selectedProjectId, setSelectedProjectId] = useState("");
 
-  if (allActions.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-8 text-center">
-        <Zap className="h-8 w-8 text-muted-foreground/20 mb-2" />
-        <p className="text-xs text-muted-foreground">No action items</p>
-      </div>
+  const activeProjects = projects.filter((p) => !p.archived);
+
+  const allActions = activeProjects
+    .flatMap((p) =>
+      (p.actionItems || []).map((a, idx) => ({ text: a, projectName: p.name, projectId: p.id, itemIndex: idx }))
     );
-  }
+
+  const handleAdd = () => {
+    if (!newItem.trim() || !selectedProjectId) return;
+    addActionItem(selectedProjectId, newItem.trim());
+    setNewItem("");
+    setSelectedProjectId("");
+    setAdding(false);
+    onUpdate();
+  };
+
+  const handleRemove = (projectId: string, itemIndex: number) => {
+    removeActionItem(projectId, itemIndex);
+    onUpdate();
+  };
 
   return (
-    <div className="space-y-1">
-      {allActions.map((a, i) => (
-        <div key={i} className="flex items-start gap-2.5 rounded-xl p-2.5 transition-colors hover:bg-white/60">
-          <Zap className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm text-foreground">{a.text}</p>
-            <p className="text-[10px] text-muted-foreground">{a.projectName}</p>
+    <div>
+      {allActions.length === 0 && !adding ? (
+        <div className="flex flex-col items-center justify-center py-6 text-center">
+          <Zap className="h-8 w-8 text-muted-foreground/20 mb-2" />
+          <p className="text-xs text-muted-foreground mb-3">No action items</p>
+        </div>
+      ) : (
+        <div className="space-y-1 mb-3">
+          {allActions.map((a, i) => (
+            <div key={`${a.projectId}-${a.itemIndex}`} className="flex items-start gap-2.5 rounded-xl p-2.5 group transition-colors hover:bg-white/60" data-testid={`dashboard-action-${i}`}>
+              <Zap className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-foreground">{a.text}</p>
+                <p className="text-[10px] text-muted-foreground">{a.projectName}</p>
+              </div>
+              <button
+                onClick={() => handleRemove(a.projectId, a.itemIndex)}
+                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all shrink-0"
+                data-testid={`button-remove-dashboard-action-${i}`}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {adding ? (
+        <div className="space-y-2 rounded-xl border border-border/40 bg-white/60 p-3">
+          <input
+            value={newItem}
+            onChange={(e) => setNewItem(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); if (e.key === "Escape") { setAdding(false); setNewItem(""); } }}
+            placeholder="New action item..."
+            className="w-full rounded-xl border border-border/60 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+            data-testid="input-dashboard-action"
+            autoFocus
+          />
+          <select
+            value={selectedProjectId}
+            onChange={(e) => setSelectedProjectId(e.target.value)}
+            className="w-full rounded-xl border border-border/60 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+            data-testid="select-action-project"
+          >
+            <option value="">Select project...</option>
+            {activeProjects.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleAdd}
+              disabled={!newItem.trim() || !selectedProjectId}
+              className="rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-all hover:shadow-sm disabled:opacity-40"
+              data-testid="button-save-dashboard-action"
+            >
+              Add
+            </button>
+            <button onClick={() => { setAdding(false); setNewItem(""); setSelectedProjectId(""); }} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
           </div>
         </div>
-      ))}
+      ) : (
+        <button
+          onClick={() => setAdding(true)}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
+          data-testid="button-add-dashboard-action"
+        >
+          <Plus className="h-3.5 w-3.5" /> Add action item
+        </button>
+      )}
     </div>
   );
 }
 
 interface DashboardProps {
   refreshKey: number;
+  onProjectUpdated?: () => void;
 }
 
-export default function Dashboard({ refreshKey }: DashboardProps) {
+export default function Dashboard({ refreshKey, onProjectUpdated }: DashboardProps) {
   const [, navigate] = useLocation();
+  const [localKey, setLocalKey] = useState(0);
   const projects = getProjects();
+
+  const handleUpdate = () => {
+    setLocalKey((k) => k + 1);
+    onProjectUpdated?.();
+  };
   const activeProjects = projects.filter((p) => !p.archived);
 
   if (activeProjects.length === 0) {
@@ -165,7 +244,7 @@ export default function Dashboard({ refreshKey }: DashboardProps) {
             <Zap className="h-4 w-4 text-amber-500" />
             Action Items
           </h3>
-          <ActionItems projects={projects} />
+          <ActionItems projects={projects} onUpdate={handleUpdate} />
         </div>
       </div>
     </div>

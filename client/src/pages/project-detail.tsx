@@ -4,14 +4,15 @@ import { useLocation } from "wouter";
 import {
   getProject, attachAnalysis,
   addDocument, removeDocument, removeMember, updateMemberTags,
-  updateChannels, updateChannelLink
+  updateChannels, updateChannelLink,
+  addActionItem, removeActionItem
 } from "@/lib/store";
 import type { Project, ToolType, ChannelEntry } from "@shared/schema";
 import TimelineWidget from "@/components/TimelineWidget";
 import ToolIcon, { getToolMeta, getToolList } from "@/components/ToolIcon";
 import {
   FileText, Calendar, Users, Upload, Loader2, AlertCircle, X, BookOpen,
-  Plus, ExternalLink, Copy, Check, Trash2, Link2, MessageCircle, Settings, ArrowRight, Image
+  Plus, ExternalLink, Copy, Check, Trash2, Link2, MessageCircle, Settings, ArrowRight, Image, Zap
 } from "lucide-react";
 import {
   SiWhatsapp, SiLine, SiKakaotalk, SiWechat, SiInstagram,
@@ -614,6 +615,88 @@ function DocumentsWidget({ project, onUpdate }: { project: Project; onUpdate: ()
   );
 }
 
+function ProjectActionItems({ project, onUpdate }: { project: Project; onUpdate: () => void }) {
+  const [adding, setAdding] = useState(false);
+  const [newItem, setNewItem] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleAdd = () => {
+    if (!newItem.trim()) return;
+    addActionItem(project.id, newItem.trim());
+    setNewItem("");
+    setAdding(false);
+    onUpdate();
+  };
+
+  const handleRemove = (index: number) => {
+    removeActionItem(project.id, index);
+    onUpdate();
+  };
+
+  const items = project.actionItems || [];
+
+  return (
+    <div className="glass-card rounded-2xl p-5" data-testid="widget-project-actions">
+      <h3 className="font-display text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+        <Zap className="h-4 w-4 text-amber-500" />
+        Action Items
+      </h3>
+
+      {items.length === 0 && !adding ? (
+        <div className="flex flex-col items-center justify-center py-6 text-center">
+          <Zap className="h-7 w-7 text-muted-foreground/20 mb-2" />
+          <p className="text-xs text-muted-foreground mb-3">No action items yet</p>
+        </div>
+      ) : (
+        <div className="space-y-1 mb-3">
+          {items.map((item, i) => (
+            <div
+              key={i}
+              className="flex items-start gap-2.5 rounded-xl p-2.5 group transition-colors hover:bg-white/60"
+              data-testid={`project-action-${i}`}
+            >
+              <Zap className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
+              <p className="flex-1 text-sm text-foreground min-w-0">{item}</p>
+              <button
+                onClick={() => handleRemove(i)}
+                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all shrink-0"
+                data-testid={`button-remove-action-${i}`}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {adding ? (
+        <div className="flex items-center gap-2">
+          <input
+            ref={inputRef}
+            value={newItem}
+            onChange={(e) => setNewItem(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); if (e.key === "Escape") { setAdding(false); setNewItem(""); } }}
+            placeholder="New action item..."
+            className="flex-1 rounded-xl border border-border/60 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+            data-testid="input-project-action"
+            autoFocus
+          />
+          <button onClick={handleAdd} className="rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-all hover:shadow-sm" data-testid="button-save-action">Add</button>
+          <button onClick={() => { setAdding(false); setNewItem(""); }} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setAdding(true)}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors"
+          data-testid="button-add-action"
+        >
+          <Plus className="h-3.5 w-3.5" /> Add action item
+        </button>
+      )}
+    </div>
+  );
+}
+
 interface ProjectDetailProps {
   projectId: string;
   refreshKey: number;
@@ -785,17 +868,23 @@ export default function ProjectDetail({ projectId, refreshKey, onProjectUpdated 
 
         <DocumentsWidget project={project} onUpdate={refresh} />
 
-        <div className="glass-card rounded-2xl p-5" data-testid="widget-timeline">
-          <h3 className="font-display text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-primary" />
-            Timeline
-          </h3>
-          <TimelineWidget
-            milestones={project.milestones}
-            summary={project.summary}
-            onRegenerate={() => setShowUpload(true)}
-            isRegenerating={analyzing}
-          />
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+          <div className="lg:col-span-3 glass-card rounded-2xl p-5" data-testid="widget-timeline">
+            <h3 className="font-display text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-primary" />
+              Timeline
+            </h3>
+            <TimelineWidget
+              milestones={project.milestones}
+              summary={project.summary}
+              onRegenerate={() => setShowUpload(true)}
+              isRegenerating={analyzing}
+            />
+          </div>
+
+          <div className="lg:col-span-2">
+            <ProjectActionItems project={project} onUpdate={refresh} />
+          </div>
         </div>
       </div>
     </div>
