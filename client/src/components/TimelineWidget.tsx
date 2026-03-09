@@ -74,7 +74,6 @@ export default function TimelineWidget({ milestones, summary, onRegenerate, isRe
                       <span className="text-[10px] text-muted-foreground">{m.weight}</span>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{m.description}</p>
                 </div>
               </div>
             );

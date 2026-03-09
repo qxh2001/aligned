@@ -1,0 +1,44 @@
+get rid of the description in the timeline card
+UPDATE — Supabase Integration for Invite Link Authentication:
+Set up a Supabase backend to handle invite-based project access:
+Database tables needed:
+
+projects — stores project info, invite link token (unique per project)
+users — stores registered user info (name, email)
+project_members — join table linking users to projects they've joined, with their tags/roles
+action_items — stores action items with a project_id foreign key (null = global)
+documents — stores document links per project
+deadlines — stores timeline entries per project
+
+Invite link flow:
+
+Each project generates a unique invite token stored in the projects table
+Visiting /invite/[token] prompts the user to register or log in via Supabase Auth
+On completion, a new row is inserted into project_members linking that user to the project
+User is then redirected into the project view automatically
+
+Real-time sync:
+
+Use Supabase Realtime subscriptions on project_members, action_items, documents, and deadlines tables
+Any changes (new member joins, action item added, deadline updated) reflect instantly across all connected project members without page refresh
+
+Access control:
+
+Users can only see projects they are a member of
+Project data (action items, documents, timeline, people list) is only accessible to authenticated members of that project
+Row Level Security (RLS) policies must be enabled on all tables to enforce this at the database level
+
+UPDATE — Authentication & Email Verification:
+
+Offer Google SSO and Microsoft SSO as sign-in options on the registration/login page
+Also allow standard email + password registration as a fallback
+Email verification flow for standard registration:
+
+After entering their email and password, the user receives a 6-digit verification code sent to their email via Supabase Auth
+User must enter the code on a verification screen to confirm their email is valid and accessible
+Only after successful code entry is their account created and linked to the project
+Code expires after 10 minutes and user can request a resend
+
+SSO users (Google/Microsoft) skip the verification code step entirely since their email is already verified by the provider
+Once verified, user is automatically added to the project via the project_members table and redirected straight into the project view
+If a user tries to access a project invite link while already logged in and verified, they are added to the project immediately with no extra steps
