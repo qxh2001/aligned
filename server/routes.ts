@@ -519,12 +519,23 @@ export async function registerRoutes(
         rawOutput = await callClaude(syllabusText);
         const cleaned = rawOutput.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
         parsed = JSON.parse(cleaned);
-      } catch {
+      } catch (firstErr: any) {
+        if (firstErr?.status === 400 || firstErr?.status === 401 || firstErr?.status === 403 || firstErr?.status === 429) {
+          const apiMsg = firstErr?.error?.error?.message || firstErr?.message || "AI service error";
+          console.error("Anthropic API error:", apiMsg);
+          return res.status(502).json({ success: false, error: `AI service error: ${apiMsg}` });
+        }
         try {
           rawOutput = await callClaude(syllabusText, true);
           const cleaned = rawOutput.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
           parsed = JSON.parse(cleaned);
-        } catch {
+        } catch (retryErr: any) {
+          if (retryErr?.status === 400 || retryErr?.status === 401 || retryErr?.status === 403 || retryErr?.status === 429) {
+            const apiMsg = retryErr?.error?.error?.message || retryErr?.message || "AI service error";
+            console.error("Anthropic API error on retry:", apiMsg);
+            return res.status(502).json({ success: false, error: `AI service error: ${apiMsg}` });
+          }
+          console.error("Failed to parse AI response after retry");
           return res.status(500).json({ success: false, error: "Failed to parse AI response. Please try again." });
         }
       }
@@ -598,12 +609,23 @@ export async function registerRoutes(
         rawOutput = await callClaude(syllabusText);
         const cleaned = rawOutput.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
         parsed = JSON.parse(cleaned);
-      } catch {
+      } catch (firstErr: any) {
+        if (firstErr?.status === 400 || firstErr?.status === 401 || firstErr?.status === 403 || firstErr?.status === 429) {
+          const apiMsg = firstErr?.error?.error?.message || firstErr?.message || "AI service error";
+          console.error("Anthropic API error:", apiMsg);
+          return res.status(502).json({ success: false, error: `AI service error: ${apiMsg}` });
+        }
         try {
           rawOutput = await callClaude(syllabusText, true);
           const cleaned = rawOutput.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
           parsed = JSON.parse(cleaned);
-        } catch {
+        } catch (retryErr: any) {
+          if (retryErr?.status === 400 || retryErr?.status === 401 || retryErr?.status === 403 || retryErr?.status === 429) {
+            const apiMsg = retryErr?.error?.error?.message || retryErr?.message || "AI service error";
+            console.error("Anthropic API error on retry:", apiMsg);
+            return res.status(502).json({ success: false, error: `AI service error: ${apiMsg}` });
+          }
+          console.error("Failed to parse AI response after retry");
           return res.status(500).json({ success: false, error: "Failed to parse AI response. Please try again." });
         }
       }
