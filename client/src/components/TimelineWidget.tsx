@@ -47,10 +47,6 @@ export default function TimelineWidget({ milestones, summary, onRegenerate, isRe
 
   return (
     <div data-testid="timeline-widget">
-      {summary && (
-        <p className="text-sm text-muted-foreground mb-4 leading-relaxed" data-testid="text-summary">{summary}</p>
-      )}
-
       <div className="relative">
         <div className="absolute left-[55px] top-0 bottom-0 w-0.5 bg-border/40 rounded-full" />
 
