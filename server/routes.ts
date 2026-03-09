@@ -111,7 +111,7 @@ function generateInviteToken(): string {
 
 async function requireProjectMember(req: Request, res: Response, next: Function) {
   if (!req.isAuthenticated()) return res.status(401).json({ message: "Not authenticated" });
-  const projectId = parseInt(req.params.id);
+  const projectId = parseInt(req.params.id as string);
   if (isNaN(projectId)) return res.status(400).json({ message: "Invalid project ID" });
 
   const [membership] = await db.select().from(projectMembers)
@@ -243,7 +243,7 @@ export async function registerRoutes(
 
   app.get("/api/projects/:id", requireAuth, requireProjectMember, async (req, res) => {
     try {
-      const projectId = parseInt(req.params.id);
+      const projectId = parseInt(req.params.id as string);
       const [project] = await db.select().from(projects).where(eq(projects.id, projectId));
       if (!project) return res.status(404).json({ message: "Project not found" });
 
@@ -290,7 +290,7 @@ export async function registerRoutes(
 
   app.post("/api/projects/:id/action-items", requireAuth, requireProjectMember, async (req, res) => {
     try {
-      const projectId = parseInt(req.params.id);
+      const projectId = parseInt(req.params.id as string);
       const { text: itemText } = req.body;
       if (!itemText?.trim()) return res.status(400).json({ message: "Text is required" });
 
@@ -309,8 +309,8 @@ export async function registerRoutes(
 
   app.delete("/api/projects/:id/action-items/:itemId", requireAuth, requireProjectMember, async (req, res) => {
     try {
-      const itemId = parseInt(req.params.itemId);
-      const projectId = parseInt(req.params.id);
+      const itemId = parseInt(req.params.itemId as string);
+      const projectId = parseInt(req.params.id as string);
       await db.delete(actionItems).where(and(eq(actionItems.id, itemId), eq(actionItems.projectId, projectId)));
       broadcast(projectId, "action_item_removed", { id: itemId });
       return res.json({ success: true });
@@ -321,7 +321,7 @@ export async function registerRoutes(
 
   app.post("/api/projects/:id/documents", requireAuth, requireProjectMember, async (req, res) => {
     try {
-      const projectId = parseInt(req.params.id);
+      const projectId = parseInt(req.params.id as string);
       const { label, url, tool } = req.body;
       if (!url?.trim()) return res.status(400).json({ message: "URL is required" });
 
@@ -341,8 +341,8 @@ export async function registerRoutes(
 
   app.delete("/api/projects/:id/documents/:docId", requireAuth, requireProjectMember, async (req, res) => {
     try {
-      const docId = parseInt(req.params.docId);
-      const projectId = parseInt(req.params.id);
+      const docId = parseInt(req.params.docId as string);
+      const projectId = parseInt(req.params.id as string);
       await db.delete(documents).where(and(eq(documents.id, docId), eq(documents.projectId, projectId)));
       broadcast(projectId, "document_removed", { id: docId });
       return res.json({ success: true });
@@ -353,7 +353,7 @@ export async function registerRoutes(
 
   app.put("/api/projects/:id/channels", requireAuth, requireProjectMember, async (req, res) => {
     try {
-      const projectId = parseInt(req.params.id);
+      const projectId = parseInt(req.params.id as string);
       const newChannels: { appKey: string; label: string; iconUrl?: string; link?: string }[] = req.body.channels || [];
 
       await db.delete(channels).where(eq(channels.projectId, projectId));
@@ -380,10 +380,10 @@ export async function registerRoutes(
 
   app.put("/api/projects/:id/channels/:appKey/link", requireAuth, requireProjectMember, async (req, res) => {
     try {
-      const projectId = parseInt(req.params.id);
+      const projectId = parseInt(req.params.id as string);
       const { link } = req.body;
       await db.update(channels).set({ link: link || null })
-        .where(and(eq(channels.projectId, projectId), eq(channels.appKey, req.params.appKey)));
+        .where(and(eq(channels.projectId, projectId), eq(channels.appKey, req.params.appKey as string)));
       broadcast(projectId, "channels_updated", {});
       return res.json({ success: true });
     } catch (err) {
@@ -393,8 +393,8 @@ export async function registerRoutes(
 
   app.post("/api/projects/:id/members/:userId/tags", requireAuth, requireProjectMember, async (req, res) => {
     try {
-      const projectId = parseInt(req.params.id);
-      const userId = parseInt(req.params.userId);
+      const projectId = parseInt(req.params.id as string);
+      const userId = parseInt(req.params.userId as string);
       const { tags } = req.body;
       await db.update(projectMembers).set({ tags: tags || [] })
         .where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, userId)));
@@ -407,8 +407,8 @@ export async function registerRoutes(
 
   app.delete("/api/projects/:id/members/:userId", requireAuth, requireProjectMember, async (req, res) => {
     try {
-      const projectId = parseInt(req.params.id);
-      const userId = parseInt(req.params.userId);
+      const projectId = parseInt(req.params.id as string);
+      const userId = parseInt(req.params.userId as string);
 
       const [project] = await db.select({ createdBy: projects.createdBy }).from(projects).where(eq(projects.id, projectId));
       if (!project) return res.status(404).json({ message: "Project not found" });
@@ -434,7 +434,7 @@ export async function registerRoutes(
     try {
       const [project] = await db.select({ id: projects.id, name: projects.name })
         .from(projects)
-        .where(eq(projects.inviteToken, req.params.token));
+        .where(eq(projects.inviteToken, req.params.token as string));
       if (!project) return res.status(404).json({ message: "Invalid invite link" });
       return res.json(project);
     } catch (err) {
@@ -445,7 +445,7 @@ export async function registerRoutes(
   app.post("/api/invite/:token", requireAuth, async (req, res) => {
     try {
       const [project] = await db.select().from(projects)
-        .where(eq(projects.inviteToken, req.params.token));
+        .where(eq(projects.inviteToken, req.params.token as string));
       if (!project) return res.status(404).json({ message: "Invalid invite link" });
 
       const [existing] = await db.select().from(projectMembers)
@@ -467,7 +467,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/projects/:id/events", requireAuth, requireProjectMember, (req, res) => {
-    const projectId = parseInt(req.params.id);
+    const projectId = parseInt(req.params.id as string);
 
     res.writeHead(200, {
       "Content-Type": "text/event-stream",
@@ -494,7 +494,7 @@ export async function registerRoutes(
     });
   }, async (req, res) => {
     try {
-      const projectId = parseInt(req.params.id);
+      const projectId = parseInt(req.params.id as string);
       let syllabusText = "";
 
       if (req.file) {
