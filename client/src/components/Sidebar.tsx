@@ -1,7 +1,7 @@
 import { useLocation } from "wouter";
 import { getProjects } from "@/lib/store";
-import { FolderOpen, Plus, Archive, ChevronDown, ChevronRight, PanelLeftClose, PanelLeft, LayoutDashboard } from "lucide-react";
-import { useState } from "react";
+import { FolderOpen, Plus, Archive, ChevronDown, ChevronRight, PanelLeftClose, PanelLeft, LayoutDashboard, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -12,9 +12,16 @@ interface SidebarProps {
 export default function Sidebar({ collapsed, onToggle, refreshKey }: SidebarProps) {
   const [location, navigate] = useLocation();
   const [showArchived, setShowArchived] = useState(false);
-  const projects = getProjects();
-  const activeProjects = projects.filter((p) => !p.archived);
-  const archivedProjects = projects.filter((p) => p.archived);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    getProjects().then((p) => { setProjects(p); setLoading(false); });
+  }, [refreshKey]);
+
+  const activeProjects = projects.filter((p: any) => !p.archived);
+  const archivedProjects = projects.filter((p: any) => p.archived);
 
   const currentProjectId = location.match(/\/app\/projects\/([^/]+)/)?.[1];
   const isDashboard = location === "/app" || location === "/app/";
@@ -40,12 +47,12 @@ export default function Sidebar({ collapsed, onToggle, refreshKey }: SidebarProp
         >
           <LayoutDashboard className="h-4 w-4" />
         </button>
-        {activeProjects.map((p) => (
+        {activeProjects.map((p: any) => (
           <button
             key={p.id}
             onClick={() => navigate(`/app/projects/${p.id}`)}
             className={`flex h-9 w-9 items-center justify-center rounded-xl text-xs font-bold transition-all ${
-              currentProjectId === p.id
+              currentProjectId === String(p.id)
                 ? "bg-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:bg-white"
             }`}
@@ -97,12 +104,18 @@ export default function Sidebar({ collapsed, onToggle, refreshKey }: SidebarProp
           <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Active</span>
         </div>
 
-        {activeProjects.map((p) => (
+        {loading && (
+          <div className="flex justify-center py-4">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        )}
+
+        {activeProjects.map((p: any) => (
           <button
             key={p.id}
             onClick={() => navigate(`/app/projects/${p.id}`)}
             className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-all ${
-              currentProjectId === p.id
+              currentProjectId === String(p.id)
                 ? "bg-white text-foreground font-medium shadow-sm"
                 : "text-muted-foreground hover:bg-white/60 hover:text-foreground"
             }`}
@@ -124,7 +137,7 @@ export default function Sidebar({ collapsed, onToggle, refreshKey }: SidebarProp
               <span>Archived</span>
               {showArchived ? <ChevronDown className="h-3 w-3 ml-auto" /> : <ChevronRight className="h-3 w-3 ml-auto" />}
             </button>
-            {showArchived && archivedProjects.map((p) => (
+            {showArchived && archivedProjects.map((p: any) => (
               <button
                 key={p.id}
                 onClick={() => navigate(`/app/projects/${p.id}`)}

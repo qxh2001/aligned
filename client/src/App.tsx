@@ -1,6 +1,6 @@
 import { Route, useLocation, Redirect, Router } from "wouter";
 import { useState, useCallback } from "react";
-import { isLoggedIn, seedMockData } from "@/lib/store";
+import { AuthProvider, useAuth } from "@/lib/auth";
 import LoginPage from "@/pages/login";
 import JoinPage from "@/pages/join";
 import Dashboard from "@/pages/dashboard";
@@ -9,15 +9,7 @@ import ProjectDetail from "@/pages/project-detail";
 import AccountPage from "@/pages/account";
 import TopBar from "@/components/TopBar";
 import Sidebar from "@/components/Sidebar";
-
-const SCHEMA_VERSION = "v2";
-const versionKey = "aligned-schema-version";
-if (localStorage.getItem(versionKey) !== SCHEMA_VERSION) {
-  localStorage.removeItem("aligned-projects");
-  localStorage.setItem(versionKey, SCHEMA_VERSION);
-}
-
-seedMockData();
+import { Loader2 } from "lucide-react";
 
 function AppContent({ refreshKey, triggerRefresh }: { refreshKey: number; triggerRefresh: () => void }) {
   const [location] = useLocation();
@@ -33,7 +25,7 @@ function AppContent({ refreshKey, triggerRefresh }: { refreshKey: number; trigge
   if (projectMatch && projectMatch[1] !== "new") {
     return (
       <ProjectDetail
-        projectId={projectMatch[1]}
+        projectId={parseInt(projectMatch[1])}
         refreshKey={refreshKey}
         onProjectUpdated={triggerRefresh}
       />
@@ -44,7 +36,7 @@ function AppContent({ refreshKey, triggerRefresh }: { refreshKey: number; trigge
     return <AccountPage />;
   }
 
-  return <Dashboard refreshKey={refreshKey} />;
+  return <Dashboard refreshKey={refreshKey} onProjectUpdated={triggerRefresh} />;
 }
 
 function AppLayout() {
@@ -70,22 +62,29 @@ function AppLayout() {
   );
 }
 
-function App() {
+function AppRouter() {
+  const { user, loading } = useAuth();
   const [location] = useLocation();
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   if (location === "/login") {
-    if (isLoggedIn()) {
-      return <Redirect to="/app" />;
-    }
+    if (user) return <Redirect to="/app" />;
     return <LoginPage />;
   }
 
-  const joinMatch = location.match(/^\/join\/([A-Za-z0-9]+)$/);
+  const joinMatch = location.match(/^\/invite\/([A-Za-z0-9]+)$/);
   if (joinMatch) {
-    return <JoinPage inviteCode={joinMatch[1]} />;
+    return <JoinPage inviteToken={joinMatch[1]} />;
   }
 
-  if (!isLoggedIn()) {
+  if (!user) {
     return <Redirect to="/login" />;
   }
 
@@ -96,4 +95,10 @@ function App() {
   return <Redirect to="/app" />;
 }
 
-export default App;
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppRouter />
+    </AuthProvider>
+  );
+}

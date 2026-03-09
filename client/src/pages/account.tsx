@@ -1,13 +1,14 @@
 import { useState } from "react";
-import { getUserName, setUserName } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 import { Check } from "lucide-react";
 
 export default function AccountPage() {
-  const [name, setName] = useState(getUserName());
+  const { user, updateName } = useAuth();
+  const [name, setName] = useState(user?.name || "");
   const [saved, setSaved] = useState(false);
 
-  const handleSave = () => {
-    setUserName(name.trim() || "Student");
+  const handleSave = async () => {
+    await updateName(name.trim() || "Student");
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -39,15 +40,8 @@ export default function AccountPage() {
           </div>
 
           <div className="glass-card rounded-2xl p-5">
-            <h2 className="font-display text-sm font-semibold text-foreground mb-3">Personality Tags</h2>
-            <div className="flex flex-wrap gap-2">
-              <button className="rounded-xl border border-dashed border-border/60 px-4 py-2 text-xs text-muted-foreground hover:border-primary/40 hover:text-primary transition-all" data-testid="button-add-mbti">
-                + Add MBTI
-              </button>
-              <button className="rounded-xl border border-dashed border-border/60 px-4 py-2 text-xs text-muted-foreground hover:border-primary/40 hover:text-primary transition-all" data-testid="button-add-star">
-                + Add Star Signs
-              </button>
-            </div>
+            <label className="block text-xs font-medium text-muted-foreground mb-2">Email</label>
+            <p className="text-sm text-foreground" data-testid="text-email">{user?.email}</p>
           </div>
         </div>
       </div>

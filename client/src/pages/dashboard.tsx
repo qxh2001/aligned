@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { getProjects, addActionItem, removeActionItem } from "@/lib/store";
-import { Plus, Zap, FolderOpen, Calendar, Trash2, X, Check } from "lucide-react";
-import type { Project, Milestone } from "@shared/schema";
+import { Plus, Zap, FolderOpen, Calendar, Trash2, Loader2 } from "lucide-react";
+import type { Milestone } from "@shared/schema";
 
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr + "T00:00:00");
@@ -18,13 +18,22 @@ function getDayName(dateStr: string): string {
   return date.toLocaleDateString("en-US", { weekday: "short", timeZone: "America/New_York" });
 }
 
-type MilestoneWithProject = Milestone & { projectName: string; projectId: string };
+type MilestoneWithProject = Milestone & { projectName: string; projectId: number };
 
-function UpcomingDeadlines({ projects }: { projects: Project[] }) {
+function UpcomingDeadlines({ projects }: { projects: any[] }) {
   const allMilestones: MilestoneWithProject[] = projects
     .filter((p) => !p.archived)
     .flatMap((p) =>
-      p.milestones.map((m) => ({ ...m, projectName: p.name, projectId: p.id }))
+      (p.deadlines || []).map((m: any) => ({
+        id: m.milestoneId || m.id,
+        title: m.title,
+        description: m.description || "",
+        date: m.date,
+        type: m.type,
+        weight: m.weight,
+        projectName: p.name,
+        projectId: p.id,
+      }))
     )
     .filter((m) => new Date(m.date + "T23:59:59") >= new Date())
     .sort((a, b) => a.date.localeCompare(b.date))
@@ -75,29 +84,32 @@ function UpcomingDeadlines({ projects }: { projects: Project[] }) {
   );
 }
 
-function ActionItems({ projects, onUpdate }: { projects: Project[]; onUpdate: () => void }) {
+function ActionItems({ projects, onUpdate }: { projects: any[]; onUpdate: () => void }) {
   const [adding, setAdding] = useState(false);
   const [newItem, setNewItem] = useState("");
   const [selectedProjectId, setSelectedProjectId] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const activeProjects = projects.filter((p) => !p.archived);
+  const activeProjects = projects.filter((p: any) => !p.archived);
 
   const allActions = activeProjects
-    .flatMap((p) =>
-      (p.actionItems || []).map((a, idx) => ({ text: a, projectName: p.name, projectId: p.id, itemIndex: idx }))
+    .flatMap((p: any) =>
+      (p.actionItems || []).map((a: any) => ({ id: a.id, text: a.text, projectName: p.name, projectId: p.id }))
     );
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!newItem.trim() || !selectedProjectId) return;
-    addActionItem(selectedProjectId, newItem.trim());
+    setSaving(true);
+    await addActionItem(parseInt(selectedProjectId), newItem.trim());
     setNewItem("");
     setSelectedProjectId("");
     setAdding(false);
+    setSaving(false);
     onUpdate();
   };
 
-  const handleRemove = (projectId: string, itemIndex: number) => {
-    removeActionItem(projectId, itemIndex);
+  const handleRemove = async (projectId: number, itemId: number) => {
+    await removeActionItem(projectId, itemId);
     onUpdate();
   };
 
@@ -110,15 +122,15 @@ function ActionItems({ projects, onUpdate }: { projects: Project[]; onUpdate: ()
         </div>
       ) : (
         <div className="space-y-1 mb-3">
-          {allActions.map((a, i) => (
-            <div key={`${a.projectId}-${a.itemIndex}`} className="flex items-start gap-2.5 rounded-xl p-2.5 group transition-colors hover:bg-white/60" data-testid={`dashboard-action-${i}`}>
+          {allActions.map((a: any, i: number) => (
+            <div key={a.id} className="flex items-start gap-2.5 rounded-xl p-2.5 group transition-colors hover:bg-white/60" data-testid={`dashboard-action-${i}`}>
               <Zap className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-foreground">{a.text}</p>
                 <p className="text-[10px] text-muted-foreground">{a.projectName}</p>
               </div>
               <button
-                onClick={() => handleRemove(a.projectId, a.itemIndex)}
+                onClick={() => handleRemove(a.projectId, a.id)}
                 className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all shrink-0"
                 data-testid={`button-remove-dashboard-action-${i}`}
               >
@@ -147,14 +159,14 @@ function ActionItems({ projects, onUpdate }: { projects: Project[]; onUpdate: ()
             data-testid="select-action-project"
           >
             <option value="">Select project...</option>
-            {activeProjects.map((p) => (
+            {activeProjects.map((p: any) => (
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
           <div className="flex items-center gap-2">
             <button
               onClick={handleAdd}
-              disabled={!newItem.trim() || !selectedProjectId}
+              disabled={!newItem.trim() || !selectedProjectId || saving}
               className="rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-all hover:shadow-sm disabled:opacity-40"
               data-testid="button-save-dashboard-action"
             >
@@ -183,14 +195,47 @@ interface DashboardProps {
 
 export default function Dashboard({ refreshKey, onProjectUpdated }: DashboardProps) {
   const [, navigate] = useLocation();
+  const [projects, setProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [localKey, setLocalKey] = useState(0);
-  const projects = getProjects();
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const projectList = await getProjects();
+      const detailed = await Promise.all(
+        projectList.map(async (p: any) => {
+          const res = await fetch(`/api/projects/${p.id}`, { credentials: "include" });
+          if (res.ok) return res.json();
+          return { ...p, deadlines: [], actionItems: [] };
+        })
+      );
+      setProjects(detailed);
+    } catch {
+      setProjects([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [refreshKey, localKey]);
 
   const handleUpdate = () => {
     setLocalKey((k) => k + 1);
     onProjectUpdated?.();
   };
-  const activeProjects = projects.filter((p) => !p.archived);
+
+  const activeProjects = projects.filter((p: any) => !p.archived);
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (activeProjects.length === 0) {
     return (

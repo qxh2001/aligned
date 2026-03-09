@@ -1,17 +1,19 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { login } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const [, navigate] = useLocation();
+  const { login, register } = useAuth();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
@@ -20,11 +22,29 @@ export default function LoginPage() {
       return;
     }
 
+    if (isSignUp && !name.trim()) {
+      setError("Please enter your name.");
+      return;
+    }
+
     setLoading(true);
-    setTimeout(() => {
-      login();
-      navigate("/app");
-    }, 400);
+
+    try {
+      let result;
+      if (isSignUp) {
+        result = await register(name.trim(), email.trim(), password);
+      } else {
+        result = await login(email.trim(), password);
+      }
+
+      if (result.error) {
+        setError(result.error);
+      } else {
+        navigate("/app");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -41,6 +61,20 @@ export default function LoginPage() {
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {isSignUp && (
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Name</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your name"
+                  className="w-full rounded-xl border border-border/60 bg-white px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
+                  data-testid="input-name"
+                />
+              </div>
+            )}
+
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1.5">Email</label>
               <input

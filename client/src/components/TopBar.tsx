@@ -1,13 +1,14 @@
 import { useLocation } from "wouter";
-import { getUserName, logout } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
 import { LogOut, Settings } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
 export default function TopBar() {
   const [, navigate] = useLocation();
+  const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const name = getUserName();
+  const name = user?.name || "Student";
   const initials = name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
 
   useEffect(() => {
@@ -19,6 +20,11 @@ export default function TopBar() {
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
 
   return (
     <header className="h-14 flex items-center justify-between border-b border-border/60 bg-white/80 backdrop-blur-md px-5 shrink-0">
@@ -52,7 +58,7 @@ export default function TopBar() {
             </button>
             <div className="my-1.5 mx-3 border-t border-border/40" />
             <button
-              onClick={() => { logout(); navigate("/login"); }}
+              onClick={handleLogout}
               className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-destructive transition-colors hover:bg-destructive/5 rounded-lg mx-1"
               data-testid="button-logout"
               style={{ width: "calc(100% - 8px)" }}

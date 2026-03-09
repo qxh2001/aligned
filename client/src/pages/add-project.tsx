@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { createProject, attachAnalysis } from "@/lib/store";
+import { createProject } from "@/lib/store";
 import { Plus, X, Upload, FileText, Loader2, AlertCircle, BookOpen } from "lucide-react";
 
 interface AddProjectProps {
@@ -43,7 +43,7 @@ export default function AddProjectPage({ onProjectCreated }: AddProjectProps) {
     setIsCreating(true);
 
     try {
-      const project = createProject({
+      const project = await createProject({
         name: name.trim(),
         description: description.trim(),
       });
@@ -59,23 +59,12 @@ export default function AddProjectPage({ onProjectCreated }: AddProjectProps) {
             formData.append("text", pastedText.trim());
           }
 
-          const res = await fetch("/api/analyze-syllabus", {
+          await fetch(`/api/projects/${project.id}/analyze-syllabus`, {
             method: "POST",
             body: formData,
+            credentials: "include",
           });
-
-          const json = await res.json();
-
-          if (json.success && json.data) {
-            attachAnalysis(
-              project.id,
-              json.data.milestones,
-              json.data.summary,
-              json.data.suggestedRoles
-            );
-          }
         } catch {
-          // Project created but analysis failed
         }
       }
 

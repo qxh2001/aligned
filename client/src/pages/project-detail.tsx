@@ -2,12 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "wouter";
 import {
-  getProject, attachAnalysis,
-  addDocument, removeDocument, removeMember, updateMemberTags,
-  updateChannels, updateChannelLink,
-  addActionItem, removeActionItem
+  getProject, addDocument, removeDocument, removeMember, updateMemberTags,
+  updateChannels, updateChannelLink, addActionItem, removeActionItem
 } from "@/lib/store";
-import type { Project, ToolType, ChannelEntry } from "@shared/schema";
+import type { ChannelEntry, Milestone } from "@shared/schema";
 import TimelineWidget from "@/components/TimelineWidget";
 import ToolIcon, { getToolMeta, getToolList } from "@/components/ToolIcon";
 import {
@@ -248,22 +246,22 @@ function ChannelPickerModal({
   );
 }
 
-function CommunicationChannels({ project, onUpdate }: { project: Project; onUpdate: () => void }) {
+function CommunicationChannels({ project, onUpdate }: { project: any; onUpdate: () => void }) {
   const [showModal, setShowModal] = useState(false);
   const [editingLink, setEditingLink] = useState<string | null>(null);
   const [linkValue, setLinkValue] = useState("");
   const linkInputRef = useRef<HTMLInputElement>(null);
 
-  const channels = project.channels || [];
+  const projectChannels: ChannelEntry[] = project.channels || [];
 
-  const handleSaveChannels = (newChannels: ChannelEntry[]) => {
-    updateChannels(project.id, newChannels);
+  const handleSaveChannels = async (newChannels: ChannelEntry[]) => {
+    await updateChannels(project.id, newChannels);
     setShowModal(false);
     onUpdate();
   };
 
-  const handleSaveLink = (appKey: string) => {
-    updateChannelLink(project.id, appKey, linkValue.trim());
+  const handleSaveLink = async (appKey: string) => {
+    await updateChannelLink(project.id, appKey, linkValue.trim());
     setEditingLink(null);
     setLinkValue("");
     onUpdate();
@@ -282,7 +280,7 @@ function CommunicationChannels({ project, onUpdate }: { project: Project; onUpda
           <MessageCircle className="h-4 w-4 text-primary" />
           Communication Channels
         </h3>
-        {channels.length > 0 && (
+        {projectChannels.length > 0 && (
           <button
             onClick={() => setShowModal(true)}
             className="text-muted-foreground hover:text-primary transition-colors"
@@ -294,7 +292,7 @@ function CommunicationChannels({ project, onUpdate }: { project: Project; onUpda
         )}
       </div>
 
-      {channels.length === 0 ? (
+      {projectChannels.length === 0 ? (
         <button
           onClick={() => setShowModal(true)}
           className="flex items-center gap-2 rounded-xl border border-dashed border-border/60 bg-white/60 px-4 py-3 text-sm text-muted-foreground hover:border-primary/40 hover:text-primary transition-all w-full justify-center"
@@ -305,7 +303,7 @@ function CommunicationChannels({ project, onUpdate }: { project: Project; onUpda
         </button>
       ) : (
         <div className="flex flex-wrap gap-3">
-          {channels.map((ch) => {
+          {projectChannels.map((ch) => {
             const builtin = BUILTIN_APPS.find((a) => a.key === ch.appKey);
             const color = builtin?.color || "#8B5CF6";
             return (
@@ -353,7 +351,7 @@ function CommunicationChannels({ project, onUpdate }: { project: Project; onUpda
 
       {showModal && (
         <ChannelPickerModal
-          selected={channels}
+          selected={projectChannels}
           onSave={handleSaveChannels}
           onClose={() => setShowModal(false)}
         />
@@ -362,9 +360,9 @@ function CommunicationChannels({ project, onUpdate }: { project: Project; onUpda
   );
 }
 
-function ProgressBar({ milestones }: { milestones: Project["milestones"] }) {
+function ProgressBar({ milestones }: { milestones: any[] }) {
   if (milestones.length === 0) return null;
-  const completed = milestones.filter((m) => new Date(m.date + "T23:59:59") < new Date()).length;
+  const completed = milestones.filter((m: any) => new Date(m.date + "T23:59:59") < new Date()).length;
   const pct = Math.round((completed / milestones.length) * 100);
 
   return (
@@ -377,9 +375,9 @@ function ProgressBar({ milestones }: { milestones: Project["milestones"] }) {
   );
 }
 
-function InviteButton({ project }: { project: Project }) {
+function InviteButton({ project }: { project: any }) {
   const [copied, setCopied] = useState(false);
-  const inviteUrl = `${window.location.origin}/join/${project.inviteCode}`;
+  const inviteUrl = `${window.location.origin}/invite/${project.inviteToken}`;
 
   const copyInvite = () => {
     navigator.clipboard.writeText(inviteUrl);
@@ -399,29 +397,31 @@ function InviteButton({ project }: { project: Project }) {
   );
 }
 
-function PeopleSection({ project, onUpdate }: { project: Project; onUpdate: () => void }) {
-  const [addingTag, setAddingTag] = useState<string | null>(null);
+function PeopleSection({ project, onUpdate }: { project: any; onUpdate: () => void }) {
+  const [addingTag, setAddingTag] = useState<number | null>(null);
   const [newTag, setNewTag] = useState("");
 
-  const handleRemoveMember = (email: string) => {
-    removeMember(project.id, email);
+  const members: { userId: number; name: string; email: string; tags: string[] }[] = project.members || [];
+
+  const handleRemoveMember = async (userId: number) => {
+    await removeMember(project.id, userId);
     onUpdate();
   };
 
-  const handleAddTag = (email: string) => {
+  const handleAddTag = async (userId: number) => {
     if (!newTag.trim()) return;
-    const member = project.members.find((m) => m.email === email);
+    const member = members.find((m) => m.userId === userId);
     if (!member) return;
-    updateMemberTags(project.id, email, [...member.tags, newTag.trim()]);
+    await updateMemberTags(project.id, userId, [...member.tags, newTag.trim()]);
     setNewTag("");
     setAddingTag(null);
     onUpdate();
   };
 
-  const handleRemoveTag = (email: string, tag: string) => {
-    const member = project.members.find((m) => m.email === email);
+  const handleRemoveTag = async (userId: number, tag: string) => {
+    const member = members.find((m) => m.userId === userId);
     if (!member) return;
-    updateMemberTags(project.id, email, member.tags.filter((t) => t !== tag));
+    await updateMemberTags(project.id, userId, member.tags.filter((t) => t !== tag));
     onUpdate();
   };
 
@@ -431,12 +431,12 @@ function PeopleSection({ project, onUpdate }: { project: Project; onUpdate: () =
         <Users className="h-4 w-4 text-primary" />
         People
       </h3>
-      {project.members.length === 0 ? (
+      {members.length === 0 ? (
         <p className="text-xs text-muted-foreground">No members yet. Share the invite link to add people.</p>
       ) : (
         <div className="space-y-3">
-          {project.members.map((m) => (
-            <div key={m.email} className="flex items-start gap-3 group" data-testid={`member-${m.email}`}>
+          {members.map((m) => (
+            <div key={m.userId} className="flex items-start gap-3 group" data-testid={`member-${m.userId}`}>
               <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-xs font-bold text-primary shrink-0 mt-0.5">
                 {m.name.charAt(0).toUpperCase()}
               </div>
@@ -445,9 +445,9 @@ function PeopleSection({ project, onUpdate }: { project: Project; onUpdate: () =
                   <span className="text-sm font-medium text-foreground">{m.name}</span>
                   <span className="text-xs text-muted-foreground">{m.email}</span>
                   <button
-                    onClick={() => handleRemoveMember(m.email)}
+                    onClick={() => handleRemoveMember(m.userId)}
                     className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all ml-auto"
-                    data-testid={`button-remove-member-${m.email}`}
+                    data-testid={`button-remove-member-${m.userId}`}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
@@ -457,36 +457,36 @@ function PeopleSection({ project, onUpdate }: { project: Project; onUpdate: () =
                     <span
                       key={tag}
                       className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-[11px] font-medium group/tag"
-                      data-testid={`tag-${m.email}-${tag}`}
+                      data-testid={`tag-${m.userId}-${tag}`}
                     >
                       {tag}
                       <button
-                        onClick={() => handleRemoveTag(m.email, tag)}
+                        onClick={() => handleRemoveTag(m.userId, tag)}
                         className="opacity-0 group-hover/tag:opacity-100 transition-opacity"
                       >
                         <X className="h-2.5 w-2.5" />
                       </button>
                     </span>
                   ))}
-                  {addingTag === m.email ? (
+                  {addingTag === m.userId ? (
                     <div className="flex items-center gap-1">
                       <input
                         value={newTag}
                         onChange={(e) => setNewTag(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === "Enter") handleAddTag(m.email); if (e.key === "Escape") setAddingTag(null); }}
+                        onKeyDown={(e) => { if (e.key === "Enter") handleAddTag(m.userId); if (e.key === "Escape") setAddingTag(null); }}
                         placeholder="Tag..."
                         className="w-20 rounded-full border border-border/60 bg-white px-2.5 py-0.5 text-[11px] focus:outline-none focus:ring-1 focus:ring-primary/30"
-                        data-testid={`input-tag-${m.email}`}
+                        data-testid={`input-tag-${m.userId}`}
                         autoFocus
                       />
-                      <button onClick={() => handleAddTag(m.email)} className="text-primary"><Check className="h-3 w-3" /></button>
+                      <button onClick={() => handleAddTag(m.userId)} className="text-primary"><Check className="h-3 w-3" /></button>
                       <button onClick={() => setAddingTag(null)} className="text-muted-foreground"><X className="h-3 w-3" /></button>
                     </div>
                   ) : (
                     <button
-                      onClick={() => { setAddingTag(m.email); setNewTag(""); }}
+                      onClick={() => { setAddingTag(m.userId); setNewTag(""); }}
                       className="rounded-full border border-dashed border-border/60 px-2 py-0.5 text-[10px] text-muted-foreground hover:border-primary/40 hover:text-primary transition-all"
-                      data-testid={`button-add-tag-${m.email}`}
+                      data-testid={`button-add-tag-${m.userId}`}
                     >
                       + tag
                     </button>
@@ -501,15 +501,15 @@ function PeopleSection({ project, onUpdate }: { project: Project; onUpdate: () =
   );
 }
 
-function DocumentsWidget({ project, onUpdate }: { project: Project; onUpdate: () => void }) {
+function DocumentsWidget({ project, onUpdate }: { project: any; onUpdate: () => void }) {
   const [adding, setAdding] = useState(false);
   const [label, setLabel] = useState("");
   const [url, setUrl] = useState("");
-  const [selectedTool, setSelectedTool] = useState<ToolType>("other");
+  const [selectedTool, setSelectedTool] = useState<string>("other");
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!url.trim()) return;
-    addDocument(project.id, {
+    await addDocument(project.id, {
       label: label.trim() || url.trim(),
       url: url.trim(),
       tool: selectedTool,
@@ -521,12 +521,13 @@ function DocumentsWidget({ project, onUpdate }: { project: Project; onUpdate: ()
     onUpdate();
   };
 
-  const handleRemove = (docId: string) => {
-    removeDocument(project.id, docId);
+  const handleRemove = async (docId: number) => {
+    await removeDocument(project.id, docId);
     onUpdate();
   };
 
   const toolList = getToolList();
+  const docs = project.documents || [];
 
   return (
     <div className="glass-card rounded-2xl p-5" data-testid="widget-docs">
@@ -535,9 +536,9 @@ function DocumentsWidget({ project, onUpdate }: { project: Project; onUpdate: ()
         Documents
       </h3>
 
-      {project.documents.length > 0 && (
+      {docs.length > 0 && (
         <div className="space-y-2 mb-3">
-          {project.documents.map((doc) => (
+          {docs.map((doc: any) => (
             <div key={doc.id} className="flex items-center gap-3 rounded-xl bg-white/60 border border-border/30 p-3 group transition-all hover:shadow-sm" data-testid={`doc-${doc.id}`}>
               <ToolIcon tool={doc.tool} size={18} />
               <div className="flex-1 min-w-0">
@@ -615,25 +616,25 @@ function DocumentsWidget({ project, onUpdate }: { project: Project; onUpdate: ()
   );
 }
 
-function ProjectActionItems({ project, onUpdate }: { project: Project; onUpdate: () => void }) {
+function ProjectActionItems({ project, onUpdate }: { project: any; onUpdate: () => void }) {
   const [adding, setAdding] = useState(false);
   const [newItem, setNewItem] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!newItem.trim()) return;
-    addActionItem(project.id, newItem.trim());
+    await addActionItem(project.id, newItem.trim());
     setNewItem("");
     setAdding(false);
     onUpdate();
   };
 
-  const handleRemove = (index: number) => {
-    removeActionItem(project.id, index);
+  const handleRemove = async (itemId: number) => {
+    await removeActionItem(project.id, itemId);
     onUpdate();
   };
 
-  const items = project.actionItems || [];
+  const items: { id: number; text: string }[] = project.actionItems || [];
 
   return (
     <div className="glass-card rounded-2xl p-5" data-testid="widget-project-actions">
@@ -649,18 +650,18 @@ function ProjectActionItems({ project, onUpdate }: { project: Project; onUpdate:
         </div>
       ) : (
         <div className="space-y-1 mb-3">
-          {items.map((item, i) => (
+          {items.map((item) => (
             <div
-              key={i}
+              key={item.id}
               className="flex items-start gap-2.5 rounded-xl p-2.5 group transition-colors hover:bg-white/60"
-              data-testid={`project-action-${i}`}
+              data-testid={`project-action-${item.id}`}
             >
               <Zap className="h-3.5 w-3.5 text-amber-500 mt-0.5 shrink-0" />
-              <p className="flex-1 text-sm text-foreground min-w-0">{item}</p>
+              <p className="flex-1 text-sm text-foreground min-w-0">{item.text}</p>
               <button
-                onClick={() => handleRemove(i)}
+                onClick={() => handleRemove(item.id)}
                 className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all shrink-0"
-                data-testid={`button-remove-action-${i}`}
+                data-testid={`button-remove-action-${item.id}`}
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
@@ -698,14 +699,15 @@ function ProjectActionItems({ project, onUpdate }: { project: Project; onUpdate:
 }
 
 interface ProjectDetailProps {
-  projectId: string;
+  projectId: number;
   refreshKey: number;
   onProjectUpdated: () => void;
 }
 
 export default function ProjectDetail({ projectId, refreshKey, onProjectUpdated }: ProjectDetailProps) {
   const [, navigate] = useLocation();
-  const [project, setProject] = useState<Project | undefined>(getProject(projectId));
+  const [project, setProject] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [pasteMode, setPasteMode] = useState(false);
@@ -713,12 +715,33 @@ export default function ProjectDetail({ projectId, refreshKey, onProjectUpdated 
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState("");
 
+  const fetchProject = async () => {
+    setLoading(true);
+    const data = await getProject(projectId);
+    setProject(data);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    setProject(getProject(projectId));
+    fetchProject();
   }, [projectId, refreshKey]);
 
+  useEffect(() => {
+    const evtSource = new EventSource(`/api/projects/${projectId}/events`, { withCredentials: true });
+    evtSource.addEventListener("action_item_added", () => fetchProject());
+    evtSource.addEventListener("action_item_removed", () => fetchProject());
+    evtSource.addEventListener("document_added", () => fetchProject());
+    evtSource.addEventListener("document_removed", () => fetchProject());
+    evtSource.addEventListener("channels_updated", () => fetchProject());
+    evtSource.addEventListener("member_joined", () => fetchProject());
+    evtSource.addEventListener("member_removed", () => fetchProject());
+    evtSource.addEventListener("tags_updated", () => fetchProject());
+    evtSource.addEventListener("deadlines_updated", () => fetchProject());
+    return () => evtSource.close();
+  }, [projectId]);
+
   const refresh = () => {
-    setProject(getProject(projectId));
+    fetchProject();
     onProjectUpdated();
   };
 
@@ -738,11 +761,14 @@ export default function ProjectDetail({ projectId, refreshKey, onProjectUpdated 
         return;
       }
 
-      const res = await fetch("/api/analyze-syllabus", { method: "POST", body: formData });
+      const res = await fetch(`/api/projects/${projectId}/analyze-syllabus`, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
       const json = await res.json();
 
-      if (json.success && json.data) {
-        attachAnalysis(projectId, json.data.milestones, json.data.summary, json.data.suggestedRoles);
+      if (json.success) {
         setShowUpload(false);
         setFile(null);
         setPastedText("");
@@ -757,6 +783,14 @@ export default function ProjectDetail({ projectId, refreshKey, onProjectUpdated 
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   if (!project) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -765,13 +799,23 @@ export default function ProjectDetail({ projectId, refreshKey, onProjectUpdated 
     );
   }
 
+  const milestones: Milestone[] = (project.deadlines || []).map((d: any) => ({
+    id: d.milestoneId || String(d.id),
+    title: d.title,
+    description: d.description || "",
+    date: d.date,
+    type: d.type,
+    weight: d.weight,
+    tips: d.tips,
+  }));
+
   return (
     <div className="flex-1 overflow-auto" data-testid="project-detail">
       <div className="border-b border-border/40 bg-white/60 backdrop-blur-sm px-5 sm:px-8 py-4">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-4 flex-1 min-w-0">
             <h1 className="font-display text-lg font-bold text-foreground truncate" data-testid="text-project-name">{project.name}</h1>
-            <ProgressBar milestones={project.milestones} />
+            <ProgressBar milestones={milestones} />
           </div>
           <div className="flex items-center gap-2">
             <InviteButton project={project} />
@@ -781,7 +825,7 @@ export default function ProjectDetail({ projectId, refreshKey, onProjectUpdated 
               data-testid="button-upload-syllabus"
             >
               <Upload className="h-3.5 w-3.5" />
-              {project.milestones.length > 0 ? "Re-upload Syllabus" : "Upload Syllabus"}
+              {milestones.length > 0 ? "Re-upload Syllabus" : "Upload Syllabus"}
             </button>
           </div>
         </div>
@@ -875,7 +919,7 @@ export default function ProjectDetail({ projectId, refreshKey, onProjectUpdated 
               Timeline
             </h3>
             <TimelineWidget
-              milestones={project.milestones}
+              milestones={milestones}
               summary={project.summary}
               onRegenerate={() => setShowUpload(true)}
               isRegenerating={analyzing}
