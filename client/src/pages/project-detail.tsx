@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useLocation } from "wouter";
 import {
   getProject, attachAnalysis,
@@ -131,8 +132,8 @@ function ChannelPickerModal({
     onSave(channels);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose} data-testid="modal-channel-picker">
+  return createPortal(
+    <div className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" style={{ zIndex: 9999 }} onClick={onClose} data-testid="modal-channel-picker">
       <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-border/40">
           <h2 className="font-display text-base font-semibold text-foreground">Set Up Channels</h2>
@@ -241,7 +242,8 @@ function ChannelPickerModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
