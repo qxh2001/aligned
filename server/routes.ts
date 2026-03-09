@@ -1,9 +1,13 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
-import { createRequire } from "module";
-const require = createRequire(import.meta.url);
-const pdfParse = require("pdf-parse");
+import { PDFParse } from "pdf-parse";
+
+async function extractPdfText(buffer: Buffer): Promise<string> {
+  const parser = new PDFParse({ data: new Uint8Array(buffer) });
+  const result = await parser.getText();
+  return result.text;
+}
 import Anthropic from "@anthropic-ai/sdk";
 import { syllabusAnalysisSchema } from "@shared/schema";
 
@@ -105,8 +109,7 @@ export async function registerRoutes(
       let syllabusText = "";
 
       if (req.file) {
-        const pdfData = await pdfParse(req.file.buffer);
-        syllabusText = pdfData.text;
+        syllabusText = await extractPdfText(req.file.buffer);
       } else if (req.body.text) {
         syllabusText = req.body.text;
       } else {
