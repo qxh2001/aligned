@@ -1,6 +1,8 @@
 # Aligned
 
-**Aligned** is a collaborative workspace for student project teams. It brings together AI-powered syllabus analysis, deadline tracking, team coordination, and communication tools — all in one place.
+**Live at [aligned-teams.org](https://aligned-teams.org)**
+
+Aligned is a collaborative workspace for student project teams. It brings together AI-powered syllabus analysis, deadline tracking, team coordination, and communication tools — all in one place.
 
 ---
 
@@ -28,6 +30,7 @@
 | Auth | Passport.js (email + password, session-based) |
 | AI | Claude (Anthropic API) |
 | Real-time | Server-Sent Events (SSE) |
+| Deployment | Vercel |
 
 ---
 
@@ -55,19 +58,13 @@ SESSION_SECRET=your_session_secret
 ANTHROPIC_API_KEY=your_anthropic_api_key
 ```
 
-### Run
+### Run locally
 
 ```bash
 npm run dev
 ```
 
 The app will be available at `http://localhost:5000`.
-
----
-
-## Screenshots
-
-> Coming soon
 
 ---
 
