@@ -1,4 +1,4 @@
-import type { Project, Milestone, ProjectRole } from "@shared/schema";
+import type { Project, Milestone, ProjectRole, DocEntry, ToolType, ProjectMember } from "@shared/schema";
 
 const PROJECTS_KEY = "aligned-projects";
 const AUTH_KEY = "aligned-auth";
@@ -6,6 +6,10 @@ const USER_KEY = "aligned-user";
 
 function generateId(): string {
   return Math.random().toString(36).substring(2, 10);
+}
+
+function generateInviteCode(): string {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
 export function isLoggedIn(): boolean {
@@ -48,17 +52,18 @@ export function getProject(id: string): Project | undefined {
 
 export function createProject(data: {
   name: string;
-  members: { email: string }[];
+  description?: string;
 }): Project {
   const project: Project = {
     id: generateId(),
     name: data.name,
-    members: data.members,
+    description: data.description || "",
+    inviteCode: generateInviteCode(),
+    members: [],
     milestones: [],
     roles: [],
-    docsLink: null,
+    documents: [],
     schedulerLink: null,
-    todos: [],
     actionItems: [],
     summary: null,
     archived: false,
@@ -100,6 +105,44 @@ export function attachAnalysis(
   return updateProject(projectId, { milestones, summary, roles });
 }
 
+export function addDocument(projectId: string, doc: Omit<DocEntry, "id">): Project | undefined {
+  const project = getProject(projectId);
+  if (!project) return undefined;
+  const documents = [...project.documents, { ...doc, id: generateId() }];
+  return updateProject(projectId, { documents });
+}
+
+export function removeDocument(projectId: string, docId: string): Project | undefined {
+  const project = getProject(projectId);
+  if (!project) return undefined;
+  const documents = project.documents.filter((d) => d.id !== docId);
+  return updateProject(projectId, { documents });
+}
+
+export function addMemberViaInvite(projectId: string, name: string, email: string): Project | undefined {
+  const project = getProject(projectId);
+  if (!project) return undefined;
+  if (project.members.some((m) => m.email === email)) return project;
+  const members = [...project.members, { name, email, tags: [] }];
+  return updateProject(projectId, { members });
+}
+
+export function removeMember(projectId: string, email: string): Project | undefined {
+  const project = getProject(projectId);
+  if (!project) return undefined;
+  const members = project.members.filter((m) => m.email !== email);
+  return updateProject(projectId, { members });
+}
+
+export function updateMemberTags(projectId: string, email: string, tags: string[]): Project | undefined {
+  const project = getProject(projectId);
+  if (!project) return undefined;
+  const members = project.members.map((m) =>
+    m.email === email ? { ...m, tags } : m
+  );
+  return updateProject(projectId, { members });
+}
+
 export function seedMockData(): void {
   const existing = getProjects();
   if (existing.length > 0) return;
@@ -108,7 +151,12 @@ export function seedMockData(): void {
     {
       id: "proj1",
       name: "CS 301 - Group Project",
-      members: [{ email: "alice@university.edu" }, { email: "bob@university.edu" }],
+      description: "A semester-long group software engineering project covering full SDLC with proposal, midterm, progress report, presentation, and final deliverable.",
+      inviteCode: "ABX42K",
+      members: [
+        { email: "alice@university.edu", name: "Alice Chen", tags: ["Lead", "Designer"] },
+        { email: "bob@university.edu", name: "Bob Martinez", tags: ["Developer"] },
+      ],
       milestones: [
         { id: "m1", title: "Project Proposal", description: "Submit 2-page proposal outlining the project scope, objectives, and timeline.", date: "2026-03-15", type: "assignment", weight: "5%" },
         { id: "m2", title: "Midterm Exam", description: "Covers chapters 1-6. Closed book, 90 minutes.", date: "2026-03-25", type: "exam", weight: "20%" },
@@ -121,9 +169,11 @@ export function seedMockData(): void {
         { roleName: "Developer", assignedToEmail: "bob@university.edu" },
         { roleName: "Documentation", assignedToEmail: null },
       ],
-      docsLink: null,
+      documents: [
+        { id: "d1", label: "Project Repo", url: "https://github.com/team/cs301-project", tool: "github" },
+        { id: "d2", label: "Design Files", url: "https://figma.com/file/abc123", tool: "figma" },
+      ],
       schedulerLink: null,
-      todos: ["Set up repository", "Draft proposal outline"],
       actionItems: ["Review project guidelines", "Schedule first team meeting"],
       summary: "A semester-long group software engineering project covering full SDLC with proposal, midterm, progress report, presentation, and final deliverable.",
       archived: false,
@@ -132,7 +182,11 @@ export function seedMockData(): void {
     {
       id: "proj2",
       name: "COMM 210 - Presentation",
-      members: [{ email: "charlie@university.edu" }],
+      description: "A communications course focused on persuasive public speaking with progressive deliverables leading to a final presentation.",
+      inviteCode: "TRQ89L",
+      members: [
+        { email: "charlie@university.edu", name: "Charlie Kim", tags: ["Speaker"] },
+      ],
       milestones: [
         { id: "m1", title: "Topic Selection", description: "Submit your chosen presentation topic for approval.", date: "2026-03-12", type: "assignment" },
         { id: "m2", title: "Outline Due", description: "Submit detailed outline with main points and supporting evidence.", date: "2026-03-28", type: "assignment", weight: "10%" },
@@ -142,9 +196,10 @@ export function seedMockData(): void {
         { roleName: "Speaker", assignedToEmail: "charlie@university.edu" },
         { roleName: "Researcher", assignedToEmail: null },
       ],
-      docsLink: null,
+      documents: [
+        { id: "d1", label: "Research Notes", url: "https://notion.so/comm210-notes", tool: "notion" },
+      ],
       schedulerLink: null,
-      todos: ["Research topics", "Create slide deck"],
       actionItems: ["Watch sample presentations"],
       summary: "A communications course focused on persuasive public speaking with progressive deliverables leading to a final presentation.",
       archived: false,

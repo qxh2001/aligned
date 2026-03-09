@@ -28,39 +28,39 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#FAFAF8] p-4">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Aligned</h1>
-          <p className="text-sm text-muted-foreground mt-1">Student team coordination</p>
+        <div className="text-center mb-10">
+          <h1 className="font-display text-3xl font-bold text-foreground tracking-tight">Aligned</h1>
+          <p className="text-sm text-muted-foreground mt-2">Student team coordination</p>
         </div>
 
-        <div className="rounded-lg border border-border bg-card p-6">
-          <h2 className="text-base font-semibold text-foreground mb-4">
-            {isSignUp ? "Create an account" : "Sign in"}
+        <div className="glass-card rounded-2xl p-7">
+          <h2 className="font-display text-lg font-semibold text-foreground mb-5">
+            {isSignUp ? "Create an account" : "Welcome back"}
           </h2>
 
-          <form onSubmit={handleSubmit} className="space-y-3">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Email</label>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@university.edu"
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50"
+                className="w-full rounded-xl border border-border/60 bg-white px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
                 data-testid="input-email"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Password</label>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Password</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter password"
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50"
+                className="w-full rounded-xl border border-border/60 bg-white px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all"
                 data-testid="input-password"
               />
             </div>
@@ -72,7 +72,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm disabled:opacity-50 transition-all hover:shadow-md hover:scale-[1.01] active:scale-[0.99]"
               data-testid="button-submit"
             >
               {loading ? (
@@ -85,10 +85,10 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-4 text-center">
+          <div className="mt-5 text-center">
             <button
               onClick={() => { setIsSignUp(!isSignUp); setError(""); }}
-              className="text-xs text-muted-foreground"
+              className="text-xs text-muted-foreground hover:text-primary transition-colors"
               data-testid="button-toggle-auth"
             >
               {isSignUp ? "Already have an account? Sign in" : "Don't have an account? Sign up"}

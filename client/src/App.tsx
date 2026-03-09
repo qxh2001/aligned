@@ -1,13 +1,21 @@
 import { Route, useLocation, Redirect, Router } from "wouter";
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback } from "react";
 import { isLoggedIn, seedMockData } from "@/lib/store";
 import LoginPage from "@/pages/login";
+import JoinPage from "@/pages/join";
 import Dashboard from "@/pages/dashboard";
 import AddProjectPage from "@/pages/add-project";
 import ProjectDetail from "@/pages/project-detail";
 import AccountPage from "@/pages/account";
 import TopBar from "@/components/TopBar";
 import Sidebar from "@/components/Sidebar";
+
+const SCHEMA_VERSION = "v2";
+const versionKey = "aligned-schema-version";
+if (localStorage.getItem(versionKey) !== SCHEMA_VERSION) {
+  localStorage.removeItem("aligned-projects");
+  localStorage.setItem(versionKey, SCHEMA_VERSION);
+}
 
 seedMockData();
 
@@ -17,7 +25,6 @@ function AppContent({ refreshKey, triggerRefresh }: { refreshKey: number; trigge
   const projectMatch = location.match(/^\/app\/projects\/([^/]+)$/);
   const isNewProject = location === "/app/projects/new";
   const isAccount = location === "/app/account";
-  const isDashboard = location === "/app" || location === "/app/";
 
   if (isNewProject) {
     return <AddProjectPage onProjectCreated={triggerRefresh} />;
@@ -71,6 +78,11 @@ function App() {
       return <Redirect to="/app" />;
     }
     return <LoginPage />;
+  }
+
+  const joinMatch = location.match(/^\/join\/([A-Za-z0-9]+)$/);
+  if (joinMatch) {
+    return <JoinPage inviteCode={joinMatch[1]} />;
   }
 
   if (!isLoggedIn()) {

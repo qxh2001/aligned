@@ -1,0 +1,29 @@
+Redesign the existing project management app with the following changes. Keep all existing functionality unless specified otherwise.
+1. Remove To-Do List; Keep Action Items Remove the to-do list section entirely. Keep the action items panel as-is.
+2. Rename "Add" button → "Add Project" Replace the generic "Add" button with a clearly labeled "Add Project" button.
+3. Add Document Organizer / Repository Add a new "Documents" tab or section per project. Users can add links to documents/resources. Each entry has:
+A link input field
+A label/title field
+A row of selectable tool icons to the LEFT of the link entry box, representing popular platforms: Google Drive, Notion, GitHub, Figma, Dropbox, Confluence, Slack, Jira, Loom, Airtable. Clicking an icon pre-tags the link with that tool type and shows its icon as a badge.
+4. Per-Project Header with Info, People & Tags At the top of each project view, add an editable project info section with three sub-sections:
+Description: A multi-line editable text field for project description
+Invitation Link: Each project has a unique shareable invite link. Display it with a “Invite” button. Anyone who joins via this link is automatically added to the People list — no manual adding needed.
+People: A read-only list of collaborators who have joined via the invite link, each showing name + email. Allow removing (deleting) people from the list, but do NOT allow manually adding people — joining only happens through the invite link.
+Tags: After each person entry, allow adding freeform public tags (e.g. "Designer", "Lead", "External"). Tags are pill-shaped, editable, and can be added or removed. Tags are visible to all project members and can be used for role assignment.
+5. Modern, Aesthetic UI Redesign Redesign the entire interface with a refined, modern aesthetic using a light-mode base:
+Use a clean white or warm off-white background (e.g. #FAFAF8 or #F5F4F0) with soft card shadows and subtle borders
+Glassmorphism-lite cards: soft white with very slight transparency and a gentle drop shadow, no dark backgrounds
+Use a distinctive font pairing: a geometric display font for headings (e.g. Syne, Clash Display, or DM Sans via Google Fonts or CDN) and a clean readable font for body text
+Accent colors: one bold primary color (e.g. indigo, forest green, or terracotta) used for buttons, tags, highlights, and active states
+Smooth hover transitions, consistent rounded corners (12–16px), and clear visual hierarchy
+Sidebar navigation with icons + labels, collapsible
+Generous whitespace, minimal clutter, and subtle dividers instead of heavy borders
+Animated micro-interactions on button clicks, card hovers, and modal opens
+6. Upcoming Deadlines → Vertical Timeline View Replace the "Upcoming Deadlines" list with a vertical timeline:
+Display a continuous vertical spine (a thin line) running down the center or left edge
+Each day of the current week (Mon–Sun) appears as a labeled node on the spine, showing the day name and date number
+Deadline items hang off their respective day node as cards to the right
+Today's node is visually highlighted with the accent color (bold dot, glow, or filled marker)
+Days with no deadlines still appear on the spine to preserve the weekly rhythm and sense of time passing
+If a deadline falls outside the current week, show it below the weekly spine in a subtle "Upcoming" overflow section, also in vertical timeline style
+Clicking a deadline card opens a popover or side panel with full details

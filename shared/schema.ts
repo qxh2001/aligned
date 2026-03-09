@@ -29,8 +29,19 @@ export type Milestone = z.infer<typeof milestoneSchema>;
 export type SuggestedRole = z.infer<typeof suggestedRoleSchema>;
 export type SyllabusAnalysis = z.infer<typeof syllabusAnalysisSchema>;
 
+export type ToolType = "gdrive" | "notion" | "github" | "figma" | "dropbox" | "confluence" | "slack" | "jira" | "loom" | "airtable" | "other";
+
+export interface DocEntry {
+  id: string;
+  label: string;
+  url: string;
+  tool: ToolType;
+}
+
 export interface ProjectMember {
   email: string;
+  name: string;
+  tags: string[];
 }
 
 export interface ProjectRole {
@@ -41,12 +52,13 @@ export interface ProjectRole {
 export interface Project {
   id: string;
   name: string;
+  description: string;
+  inviteCode: string;
   members: ProjectMember[];
   milestones: Milestone[];
   roles: ProjectRole[];
-  docsLink: string | null;
+  documents: DocEntry[];
   schedulerLink: string | null;
-  todos: string[];
   actionItems: string[];
   summary: string | null;
   archived: boolean;
