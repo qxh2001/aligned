@@ -15,6 +15,8 @@ app.use(express.urlencoded({ extended: false }));
 
 const httpServer = createServer(app);
 
+let initError: any = null;
+
 const initPromise = (async () => {
   await registerRoutes(httpServer, app);
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
@@ -23,14 +25,15 @@ const initPromise = (async () => {
     if (res.headersSent) return next(err);
     return res.status(status).json({ message });
   });
-})();
+})().catch((err) => {
+  initError = err;
+  console.error("Server initialization failed:", err);
+});
 
 export default async function handler(req: any, res: any) {
-  try {
-    await initPromise;
-  } catch (err: any) {
-    console.error("Server initialization failed:", err);
-    res.status(500).json({ message: err.message || "Server initialization failed" });
+  await initPromise;
+  if (initError) {
+    res.status(500).json({ message: initError.message || "Server initialization failed" });
     return;
   }
   app(req, res);
