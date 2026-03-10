@@ -22,8 +22,11 @@ declare global {
 const PgStore = connectPgSimple(session);
 
 export function setupAuth(app: Express) {
+  const store = new PgStore({ pool, tableName: "session", createTableIfMissing: true });
+  store.on("error", (err) => console.error("Session store error:", err));
+
   const sessionMiddleware = session({
-    store: new PgStore({ pool, tableName: "session", createTableIfMissing: true }),
+    store,
     secret: process.env.SESSION_SECRET!,
     resave: false,
     saveUninitialized: false,

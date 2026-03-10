@@ -4,6 +4,9 @@ import { registerRoutes } from "../server/routes";
 
 const app = express();
 
+// Trust Vercel's reverse proxy so req.secure === true (needed for Secure cookies)
+app.set("trust proxy", 1);
+
 app.use(
   express.json({
     verify: (req: any, _res: any, buf: any) => {
