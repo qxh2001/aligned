@@ -777,7 +777,7 @@ export default function ProjectDetail({ projectId, refreshKey, onProjectUpdated 
         setError(json.error || "Analysis failed.");
       }
     } catch {
-      setError("Network error. Please try again.");
+      setError("Request timed out. Large PDFs can take a while — try pasting the text instead, or try again.");
     } finally {
       setAnalyzing(false);
     }
@@ -895,6 +895,12 @@ export default function ProjectDetail({ projectId, refreshKey, onProjectUpdated 
                 {analyzing ? <><Loader2 className="h-3 w-3 animate-spin" /> Analyzing...</> : "Analyze"}
               </button>
             </div>
+
+            {analyzing && (
+              <p className="text-xs text-muted-foreground mt-2">
+                AI is reading your syllabus — this usually takes 20–40 seconds.
+              </p>
+            )}
 
             {error && (
               <div className="flex items-start gap-2.5 mt-3 rounded-xl bg-destructive/5 border border-destructive/15 px-4 py-3">

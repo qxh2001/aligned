@@ -15,6 +15,7 @@ export default function AddProjectPage({ onProjectCreated }: AddProjectProps) {
   const [pasteMode, setPasteMode] = useState(false);
   const [pastedText, setPastedText] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [creatingPhase, setCreatingPhase] = useState<"creating" | "analyzing">("creating");
   const [error, setError] = useState("");
 
   const validateFile = (f: File): string | null => {
@@ -41,6 +42,7 @@ export default function AddProjectPage({ onProjectCreated }: AddProjectProps) {
 
     setError("");
     setIsCreating(true);
+    setCreatingPhase("creating");
 
     try {
       const project = await createProject({
@@ -51,6 +53,7 @@ export default function AddProjectPage({ onProjectCreated }: AddProjectProps) {
       const hasSyllabus = file || (pasteMode && pastedText.trim().length >= 200);
 
       if (hasSyllabus) {
+        setCreatingPhase("analyzing");
         try {
           const formData = new FormData();
           if (file) {
@@ -59,12 +62,18 @@ export default function AddProjectPage({ onProjectCreated }: AddProjectProps) {
             formData.append("text", pastedText.trim());
           }
 
-          await fetch(`/api/projects/${project.id}/analyze-syllabus`, {
+          const res = await fetch(`/api/projects/${project.id}/analyze-syllabus`, {
             method: "POST",
             body: formData,
             credentials: "include",
           });
+          const json = await res.json().catch(() => ({ success: false }));
+          if (!json.success) {
+            // Analysis failed but project was created — navigate anyway so user can retry
+            console.warn("Syllabus analysis failed:", json.error);
+          }
         } catch {
+          // Network error (e.g. timeout) — project was still created, navigate anyway
         }
       }
 
@@ -74,6 +83,7 @@ export default function AddProjectPage({ onProjectCreated }: AddProjectProps) {
       setError("Something went wrong. Please try again.");
     } finally {
       setIsCreating(false);
+      setCreatingPhase("creating");
     }
   };
 
@@ -169,26 +179,37 @@ export default function AddProjectPage({ onProjectCreated }: AddProjectProps) {
             </div>
           )}
 
-          <div className="flex items-center gap-3 pt-2">
-            <button
-              onClick={handleCreate}
-              disabled={isCreating || !name.trim()}
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm disabled:opacity-40 transition-all hover:shadow-md hover:scale-[1.01] active:scale-[0.99]"
-              data-testid="button-create-project"
-            >
-              {isCreating ? (
-                <><Loader2 className="h-4 w-4 animate-spin" /> Creating...</>
-              ) : (
-                "Create Project"
+          <div className="space-y-2 pt-2">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleCreate}
+                disabled={isCreating || !name.trim()}
+                className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm disabled:opacity-40 transition-all hover:shadow-md hover:scale-[1.01] active:scale-[0.99]"
+                data-testid="button-create-project"
+              >
+                {isCreating ? (
+                  creatingPhase === "analyzing"
+                    ? <><Loader2 className="h-4 w-4 animate-spin" /> Generating timeline...</>
+                    : <><Loader2 className="h-4 w-4 animate-spin" /> Creating...</>
+                ) : (
+                  "Create Project"
+                )}
+              </button>
+              {!isCreating && (
+                <button
+                  onClick={() => navigate("/app")}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  data-testid="button-cancel"
+                >
+                  Cancel
+                </button>
               )}
-            </button>
-            <button
-              onClick={() => navigate("/app")}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              data-testid="button-cancel"
-            >
-              Cancel
-            </button>
+            </div>
+            {isCreating && creatingPhase === "analyzing" && (
+              <p className="text-xs text-muted-foreground">
+                AI is reading your syllabus — this usually takes 20–40 seconds.
+              </p>
+            )}
           </div>
         </div>
       </div>
