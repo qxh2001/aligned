@@ -2,7 +2,7 @@
 
 **Live at [aligned-teams.org](https://aligned-teams.org)**
 
-Aligned is a collaborative workspace for student project teams. It brings together AI-powered syllabus analysis, deadline tracking, team coordination, and communication tools — all in one place.
+Aligned is a lightweight coordination workspace for student project teams. It reduces the hidden overhead of scheduling, tool fragmentation, and unclear ownership — without replacing the tools teams already use. The MVP delivers AI-powered syllabus analysis, shared deadline tracking, action items, and a central hub for communication channels and documents — all in one low-setup interface.
 
 ---
 
