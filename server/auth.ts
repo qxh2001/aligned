@@ -23,7 +23,7 @@ const PgStore = connectPgSimple(session);
 
 export function setupAuth(app: Express) {
   const sessionMiddleware = session({
-    store: new PgStore({ pool, tableName: "session" }),
+    store: new PgStore({ pool, tableName: "session", createTableIfMissing: true }),
     secret: process.env.SESSION_SECRET!,
     resave: false,
     saveUninitialized: false,
