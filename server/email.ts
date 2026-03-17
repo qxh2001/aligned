@@ -19,10 +19,15 @@ export async function sendEoiNotification(data: {
   const transporter = createTransporter();
 
   if (!transporter || !notifyEmail) {
-    console.warn("Email not configured — skipping notification. Set SMTP_USER, SMTP_PASS, and NOTIFY_EMAIL.");
+    console.warn("Email not configured — skipping notification. Set SMTP_USER, SMTP_PASS, and NOTIFY_EMAIL.", {
+      hasSmtpUser: !!process.env.SMTP_USER,
+      hasSmtpPass: !!process.env.SMTP_PASS,
+      hasNotifyEmail: !!notifyEmail,
+    });
     return;
   }
 
+  console.log("Sending EOI email to", notifyEmail);
   await transporter.sendMail({
     from: `"Aligned" <${process.env.SMTP_USER}>`,
     to: notifyEmail,
