@@ -9,10 +9,11 @@ import { db } from "./db";
 import { eq, and, inArray } from "drizzle-orm";
 import {
   users, projects, projectMembers, actionItems, documents, deadlines, channels,
-  syllabusAnalysisSchema,
+  eoiRequests, syllabusAnalysisSchema,
 } from "@shared/schema";
 import { setupAuth, requireAuth } from "./auth";
 import { addClient, broadcast } from "./realtime";
+import { sendEoiNotification } from "./email";
 import Anthropic from "@anthropic-ai/sdk";
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
@@ -637,6 +638,48 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Analysis error:", error);
       return res.status(500).json({ success: false, error: "An unexpected error occurred. Please try again." });
+    }
+  });
+
+  app.options("/api/eoi", (req, res) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.sendStatus(204);
+  });
+
+  app.post("/api/eoi", async (req, res) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+
+    try {
+      const { name, email, roles } = req.body;
+
+      if (!name?.trim() || !email?.trim()) {
+        return res.status(400).json({ message: "Name and email are required" });
+      }
+      const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      if (!emailOk) {
+        return res.status(400).json({ message: "Invalid email address" });
+      }
+
+      await db.insert(eoiRequests).values({
+        firstName: name.trim(),
+        lastName: "",
+        email: email.toLowerCase().trim(),
+        school: "",
+        roles: Array.isArray(roles) ? roles : [],
+        painPoint: "",
+      });
+
+      // Fire-and-forget email — don't block the response
+      sendEoiNotification({ name, email, roles }).catch((err) =>
+        console.error("Email notification failed:", err)
+      );
+
+      return res.json({ success: true });
+    } catch (err) {
+      console.error("EOI submission error:", err);
+      return res.status(500).json({ message: "Submission failed. Please try again." });
     }
   });
 

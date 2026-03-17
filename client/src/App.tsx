@@ -7,6 +7,7 @@ import Dashboard from "@/pages/dashboard";
 import AddProjectPage from "@/pages/add-project";
 import ProjectDetail from "@/pages/project-detail";
 import AccountPage from "@/pages/account";
+import LandingPage from "@/pages/landing";
 import TopBar from "@/components/TopBar";
 import Sidebar from "@/components/Sidebar";
 import { Loader2 } from "lucide-react";
@@ -72,6 +73,10 @@ function AppRouter() {
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
       </div>
     );
+  }
+
+  if (location === "/") {
+    return <LandingPage />;
   }
 
   if (location === "/login") {

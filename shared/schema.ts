@@ -97,6 +97,19 @@ export const insertChannelSchema = createInsertSchema(channels).omit({ id: true 
 export type InsertChannel = z.infer<typeof insertChannelSchema>;
 export type SelectChannel = typeof channels.$inferSelect;
 
+export const eoiRequests = pgTable("eoi_requests", {
+  id: serial("id").primaryKey(),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  email: text("email").notNull(),
+  school: text("school").default("").notNull(),
+  roles: text("roles").array().default([]).notNull(),
+  painPoint: text("pain_point").default("").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type EoiRequest = typeof eoiRequests.$inferSelect;
+
 export const milestoneSchema = z.object({
   id: z.string(),
   title: z.string(),
