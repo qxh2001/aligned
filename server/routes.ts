@@ -671,10 +671,12 @@ export async function registerRoutes(
         painPoint: "",
       });
 
-      // Fire-and-forget email — don't block the response
-      sendEoiNotification({ name, email, roles }).catch((err) =>
-        console.error("Email notification failed:", err)
-      );
+      // Await email before responding — Vercel freezes the container after res.json()
+      try {
+        await sendEoiNotification({ name, email, roles });
+      } catch (emailErr) {
+        console.error("Email notification failed:", emailErr);
+      }
 
       return res.json({ success: true });
     } catch (err) {
