@@ -126,6 +126,16 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* PRODUCT SHOWCASE */}
+        <section className="lp-showcase lp-fade-in">
+          <div className="lp-showcase-video">
+            <video autoPlay muted loop playsInline poster="/aligned-demo.png">
+              <source src="/demo.mov" type="video/mp4" />
+              <img src="/aligned-demo.png" alt="Aligned product screenshot" style={{ width: "100%", display: "block" }} />
+            </video>
+          </div>
+        </section>
+
         {/* FEATURES */}
         <section className="lp-section lp-fade-in" ref={featuresRef}>
           <p className="lp-section-label">What it does</p>

@@ -519,6 +519,34 @@
       transform: translateY(0);
     }
 
+    /* ─── Product showcase ─── */
+    .showcase {
+      padding: 0 0 4.5rem;
+    }
+
+    .showcase-video {
+      width: 100%;
+      border-radius: var(--radius-lg);
+      border: 0.5px solid var(--border-md);
+      overflow: hidden;
+      background: var(--bg-surface);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+    }
+
+    .showcase-video video {
+      width: 100%;
+      display: block;
+      border-radius: var(--radius-lg);
+    }
+
+    .showcase-img {
+      width: 100%;
+      border-radius: var(--radius-lg);
+      border: 0.5px solid var(--border-md);
+      display: block;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+    }
+
     /* ─── Mobile ─── */
     @media (max-width: 520px) {
       .form-row { grid-template-columns: 1fr; }
@@ -564,6 +592,16 @@
           <div class="stat-num">100%</div>
           <div class="stat-label">of pilot users plan<br>to keep using Aligned</div>
         </div>
+      </div>
+    </section>
+
+    <!-- PRODUCT SHOWCASE -->
+    <section class="showcase fade-in">
+      <div class="showcase-video">
+        <video autoplay muted loop playsinline poster="aligned-demo.png">
+          <source src="demo.mov" type="video/mp4" />
+          <img src="aligned-demo.png" alt="Aligned product screenshot" class="showcase-img" />
+        </video>
       </div>
     </section>
 
