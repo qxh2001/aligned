@@ -76,6 +76,10 @@ function AppRouter() {
   }
 
   if (location === "/") {
+    const isAppSubdomain = typeof window !== "undefined" && window.location.hostname.startsWith("app.");
+    if (isAppSubdomain) {
+      return user ? <Redirect to="/app" /> : <Redirect to="/login" />;
+    }
     return <LandingPage />;
   }
 
