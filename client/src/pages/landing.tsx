@@ -129,9 +129,8 @@ export default function LandingPage() {
         {/* PRODUCT SHOWCASE */}
         <section className="lp-showcase lp-fade-in">
           <div className="lp-showcase-video">
-            <video autoPlay muted loop playsInline poster="/aligned-demo.png">
+            <video controls playsInline poster="/aligned-demo.png" preload="metadata">
               <source src="/demo.mov" type="video/mp4" />
-              <img src="/aligned-demo.png" alt="Aligned product screenshot" style={{ width: "100%", display: "block" }} />
             </video>
           </div>
         </section>
