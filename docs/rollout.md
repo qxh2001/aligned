@@ -2,6 +2,8 @@
 
 The documentation on `main` can ship independently. This API/UI change needs an additive database migration before deployment. Keep the code PR unmerged until the staging checks below pass.
 
+For a move off Supabase, follow the [remote-server database migration plan](./migrate-to-vps.md) before the production connection switch.
+
 1. Back up the existing database and use a staging database with representative projects and deadlines.
 2. Apply `migrations/ai_usage.sql` using your database administration tool. It adds `ai_usage`, `deadlines.source_text`, and `deadlines.date_status`; it does not change existing deadline dates. Existing deadlines receive `date_status = 'legacy'` and no source quote.
 3. Set a stable random `SESSION_SECRET`. Leave `ALLOW_PUBLIC_AI_DEMO` unset unless anonymous analysis is intentionally enabled. Set `AI_HOURLY_LIMIT` and `AI_DAILY_LIMIT` to the desired request ceilings and configure provider spending controls.
