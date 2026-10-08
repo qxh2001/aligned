@@ -66,6 +66,10 @@ Set `DATABASE_URL` to the new, certificate-verified PostgreSQL endpoint in the i
 
 Use a PostgreSQL role dedicated to this application, with access only to its database. Vercel must be able to reach the endpoint over TLS; do not solve reachability by allowing unauthenticated database access or disabling certificate verification. Choose connection-pool limits after checking the target's connection ceiling and Vercel concurrency.
 
+For a privately signed server certificate, put the **public** CA certificate PEM in `DATABASE_CA_CERT`; never put its private key in Vercel or Git. Generic remote `DATABASE_URL` connections verify both the chain and hostname/IP. The application removes the validated `sslmode=verify-full` query parameter before passing explicit TLS options to `pg`, preventing URL parsing from replacing the configured CA. Other TLS file parameters and weaker TLS modes are rejected on this path. The legacy Supabase variable retains its previous compatibility behavior and must be removed before configuring the new CA.
+
+`DATABASE_POOL_MAX` defaults to two connections per application instance, with a five-second connection wait and ten-second idle timeout. This is not a global connection budget; the server's role/cluster limits also apply across instances. Tune only after checking usage and the server's memory budget.
+
 Deploy the staged application change, smoke-test it with writes still stopped, and then reopen writes. Updating an environment variable requires a new Vercel deployment to affect the running app. Test preview deployments against staging, not against the production database.
 
 ## Backups and rollback

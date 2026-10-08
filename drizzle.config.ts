@@ -1,10 +1,7 @@
 import { defineConfig } from "drizzle-kit";
+import { databaseConnectionConfig } from "./server/database-config";
 
-const url = process.env.SUPABASE_DATABASE_URL || process.env.DATABASE_URL;
-
-if (!url) {
-  throw new Error("SUPABASE_DATABASE_URL or DATABASE_URL is required");
-}
+const { connectionString: url, ssl } = databaseConnectionConfig();
 
 export default defineConfig({
   out: "./migrations",
@@ -12,6 +9,6 @@ export default defineConfig({
   dialect: "postgresql",
   dbCredentials: {
     url,
-    ssl: process.env.SUPABASE_DATABASE_URL ? { rejectUnauthorized: false } : undefined,
+    ssl,
   },
 });
