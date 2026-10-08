@@ -1,3 +1,5 @@
+import SyllabusReview from "@/components/SyllabusReview";
+import { analysisSchema, type AnalysisDraft } from "@shared/syllabus";
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "wouter";
@@ -705,6 +707,16 @@ interface ProjectDetailProps {
 }
 
 export default function ProjectDetail({ projectId, refreshKey, onProjectUpdated }: ProjectDetailProps) {
+  const [draft, setDraft] = useState<AnalysisDraft | null>(null);
+  useEffect(() => {
+    setDraft(null);
+    const key = `syllabus-review-${projectId}`;
+    const stored = sessionStorage.getItem(key);
+    sessionStorage.removeItem(key);
+    if (stored) {
+      try { const result = analysisSchema.safeParse(JSON.parse(stored)); if (result.success) setDraft(result.data); } catch { /* Invalid drafts are discarded. */ }
+    }
+  }, [projectId]);
   const [, navigate] = useLocation();
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -769,10 +781,10 @@ export default function ProjectDetail({ projectId, refreshKey, onProjectUpdated 
       const json = await res.json();
 
       if (json.success) {
+        setDraft(analysisSchema.parse(json.data));
         setShowUpload(false);
         setFile(null);
         setPastedText("");
-        refresh();
       } else {
         setError(json.error || "Analysis failed.");
       }
@@ -807,6 +819,8 @@ export default function ProjectDetail({ projectId, refreshKey, onProjectUpdated 
     type: d.type,
     weight: d.weight,
     tips: d.tips,
+    sourceText: d.sourceText || "",
+    dateStatus: d.dateStatus || "legacy",
   }));
 
   return (
@@ -832,6 +846,7 @@ export default function ProjectDetail({ projectId, refreshKey, onProjectUpdated 
       </div>
 
       <div className="p-5 sm:p-8 space-y-5">
+        {draft && <SyllabusReview key={projectId} draft={draft} projectId={projectId} onSaved={() => { setDraft(null); refresh(); }} onCancel={() => setDraft(null)} />}
         {showUpload && (
           <div className="glass-card rounded-2xl p-5" data-testid="upload-panel">
             <div className="flex items-center justify-between mb-4">

@@ -13,11 +13,11 @@ const typeConfig: Record<Milestone["type"], { color: string; bg: string; border:
 };
 
 function formatDate(dateStr: string): string {
-  const date = new Date(dateStr + "T00:00:00");
+  const date = new Date(dateStr + "T00:00:00Z");
   return date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
-    timeZone: "America/New_York",
+    timeZone: "UTC",
   });
 }
 
@@ -70,6 +70,12 @@ export default function TimelineWidget({ milestones, summary, onRegenerate, isRe
                       <span className="text-[10px] text-muted-foreground">{m.weight}</span>
                     )}
                   </div>
+                  {m.sourceText && (
+                    <details className="mt-2 text-xs text-muted-foreground">
+                      <summary className="cursor-pointer">Source from syllabus</summary>
+                      <blockquote className="mt-1 border-l-2 pl-2">{m.sourceText}</blockquote>
+                    </details>
+                  )}
                 </div>
               </div>
             );

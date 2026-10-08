@@ -1,4 +1,4 @@
-import { pgTable, serial, text, boolean, timestamp, integer, unique } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, boolean, timestamp, integer, unique, bigint } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -77,6 +77,8 @@ export const deadlines = pgTable("deadlines", {
   weight: text("weight"),
   tips: text("tips"),
   milestoneId: text("milestone_id").notNull(),
+  sourceText: text("source_text").default("").notNull(),
+  dateStatus: text("date_status").default("legacy").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -110,6 +112,12 @@ export const eoiRequests = pgTable("eoi_requests", {
 
 export type EoiRequest = typeof eoiRequests.$inferSelect;
 
+export const aiUsage = pgTable("ai_usage", {
+  key: text("key").primaryKey(),
+  windowStart: bigint("window_start", { mode: "number" }).notNull(),
+  used: integer("used").notNull(),
+});
+
 export const milestoneSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -118,6 +126,8 @@ export const milestoneSchema = z.object({
   type: z.enum(["assignment", "exam", "project", "reading", "lab", "presentation", "other"]),
   weight: z.string().optional(),
   tips: z.string().optional(),
+  sourceText: z.string().optional(),
+  dateStatus: z.string().optional(),
 });
 
 export const suggestedRoleSchema = z.object({
