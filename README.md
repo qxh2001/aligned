@@ -1,73 +1,67 @@
 # Aligned
 
-**Live at [aligned-teams.org](https://aligned-teams.org)**
+An AI-assisted coordination workspace that helps student teams turn a syllabus into a shared plan, with deadlines, action items, documents, and communication links in one place.
 
-Aligned is a lightweight coordination workspace for student project teams. It reduces the hidden overhead of scheduling, tool fragmentation, and unclear ownership — without replacing the tools teams already use. The MVP delivers AI-powered syllabus analysis, shared deadline tracking, action items, and a central hub for communication channels and documents — all in one low-setup interface.
+[Product site](https://aligned-teams.org) · [Demo video](./Demo.MOV) · [Katherine's portfolio](https://katherinexu.me)
 
----
+![Aligned project workspace](./aligned-demo.png)
 
-## Features
+## Why this product
 
-- **AI Syllabus Analysis** — Upload a syllabus PDF and automatically extract deadlines, milestones, and tips
-- **Project Dashboard** — View upcoming deadlines and action items across all your projects at a glance
-- **Team Management** — Invite members via shareable links, assign roles and tags
-- **Communication Channels** — Connect Slack, Discord, or any tool your team already uses
-- **Document Organizer** — Link Google Drive, Notion, Figma, GitHub, and more
-- **Timeline Widget** — Visualize project milestones on a vertical timeline
-- **Action Items** — Shared to-do list with real-time sync across all team members
-- **Real-time Updates** — Live project state via Server-Sent Events (SSE)
+Student teams spread course requirements, decisions, and documents across several tools. Aligned starts with syllabus deadline extraction so a team gets a useful shared timeline before it has to maintain another workspace. Scheduling was deferred because it requires more setup and participation before delivering value.
 
----
+This was a MIT Sloan product-management course project, built and deployed as an MVP in two weeks. It is a completed course MVP and early pilot, not a claim of sustained adoption.
 
-## Tech Stack
+## My contribution
+
+**Katherine Xu:** interviewed MIT Sloan and Harvard graduate students, defined a seven-feature roadmap, and prioritized the first usable workflow. I owned deployment to Vercel and Supabase and built the public landing site. **A teammate built the core application.**
+
+Getting the Replit prototype into production involved bundling the API with esbuild, resolving ESM/CommonJS compatibility, pinning a PDF parser compatible with the server runtime, and fixing login sessions behind Vercel's proxy. I also addressed syllabus-analysis timeouts and awaited email notifications before a serverless function returned.
+
+An eight-user pilot reported **100% task completion** and a **30% reduction in coordination time**. These are reported results from a small early pilot, not a controlled effectiveness study or evidence of long-term retention.
+
+## Workflow and stack
+
+Create a project, upload a syllabus PDF or paste its text, and generate shared milestones. Invite teammates, manage action items, and link the documents and communication tools the team already uses.
+
+Slack, Discord, Drive, Notion, and other resources are **links in a shared hub**, not native two-way integrations.
 
 | Layer | Technology |
-|---|---|
-| Frontend | React + Vite + Tailwind CSS |
-| Routing | wouter |
-| Backend | Express.js |
-| Database | PostgreSQL via Supabase (Drizzle ORM) |
-| Auth | Passport.js (email + password, session-based) |
-| AI | Claude (Anthropic API) |
-| Real-time | Server-Sent Events (SSE) |
-| Deployment | Vercel |
+| --- | --- |
+| Frontend | React, Vite, Tailwind CSS, wouter |
+| Backend | Express, Passport sessions |
+| Database | Supabase PostgreSQL, Drizzle ORM |
+| AI extraction | Claude |
+| Hosting | Vercel, with a separate public landing site |
 
----
+The prototype's SSE broadcaster keeps clients in process memory. On serverless deployments, cross-instance broadcasts and long-lived connections are limited; the MVP does not guarantee real-time delivery across instances. Refreshing the project retrieves saved state.
 
-## Getting Started
+## Run locally
 
-### Prerequisites
-- Node.js 18+
-- PostgreSQL database (or Supabase project)
-
-### Installation
+Use Node.js **22.12+** and a dedicated PostgreSQL development database. An Anthropic API key is required for live syllabus analysis.
 
 ```bash
 git clone https://github.com/qxh2001/aligned.git
 cd aligned
-npm install
+npm ci
 ```
 
-### Environment Variables
-
-Create a `.env` file in the root directory:
-
-```env
-SUPABASE_DATABASE_URL=your_supabase_pooler_connection_string
-SESSION_SECRET=your_session_secret
-ANTHROPIC_API_KEY=your_anthropic_api_key
-```
-
-### Run locally
+Export `DATABASE_URL` for local PostgreSQL, or `SUPABASE_DATABASE_URL` for a development Supabase pooler. Also export a long random `SESSION_SECRET` and your own `ANTHROPIC_API_KEY`. The current scripts read the shell environment; they do not automatically load an environment file. Keep credentials out of Git.
 
 ```bash
+# Review proposed schema changes and use a development database.
+npm run db:push
 npm run dev
 ```
 
-The app will be available at `http://localhost:5000`.
+Open `http://localhost:5000`. Passport's session store creates its session table at startup. Optional SMTP notifications require `SMTP_USER`, `SMTP_PASS`, and `NOTIFY_EMAIL` in the environment.
 
----
+## Reliability work
+
+The current MVP can estimate incomplete dates. Verify extracted milestones against the syllabus; an AI-generated date is not evidence of a confirmed deadline.
+
+A [reliability update](https://github.com/qxh2001/aligned/pulls) is being prepared with source quotes, explicit date review before saving, persistent request quotas, bounded model calls, reproducible setup, tests, CI, and synthetic extraction evaluations. Its branch includes staging migration and rollout instructions. Those changes should not be treated as deployed until the update is merged and released.
 
 ## License
 
-MIT
+The project declares MIT in its package metadata. See [LICENSE](./LICENSE).
