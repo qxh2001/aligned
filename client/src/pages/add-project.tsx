@@ -68,7 +68,9 @@ export default function AddProjectPage({ onProjectCreated }: AddProjectProps) {
             credentials: "include",
           });
           const json = await res.json().catch(() => ({ success: false }));
-          if (!json.success) {
+          if (json.success && json.data) {
+            sessionStorage.setItem(`syllabus-review-${project.id}`, JSON.stringify(json.data));
+          } else {
             // Analysis failed but project was created — navigate anyway so user can retry
             console.warn("Syllabus analysis failed:", json.error);
           }
@@ -91,7 +93,7 @@ export default function AddProjectPage({ onProjectCreated }: AddProjectProps) {
     <div className="flex-1 overflow-auto p-5 sm:p-8">
       <div className="max-w-lg">
         <h1 className="font-display text-xl font-bold text-foreground mb-1" data-testid="text-page-title">New Project</h1>
-        <p className="text-sm text-muted-foreground mb-8">Set up a new team project. Upload a syllabus to auto-generate a timeline.</p>
+        <p className="text-sm text-muted-foreground mb-8">Set up a new team project. Upload a syllabus to extract a draft timeline for you to review.</p>
 
         <div className="space-y-6">
           <div>

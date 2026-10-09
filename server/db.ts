@@ -1,15 +1,7 @@
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "@shared/schema";
+import { databasePoolConfig } from "./database-config";
 
-const connectionString = process.env.SUPABASE_DATABASE_URL || process.env.DATABASE_URL;
-
-if (!connectionString) {
-  throw new Error("SUPABASE_DATABASE_URL or DATABASE_URL is required");
-}
-
-export const pool = new Pool({
-  connectionString,
-  ssl: process.env.SUPABASE_DATABASE_URL ? { rejectUnauthorized: false } : undefined,
-});
+export const pool = new Pool(databasePoolConfig());
 export const db = drizzle(pool, { schema });
