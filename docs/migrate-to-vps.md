@@ -1,6 +1,6 @@
 # Move Aligned's database from Supabase to a remote server
 
-Prepared plan; no remote connection, export, restore, or production switch has been performed. The destination host and source connection still need to be identified.
+This guide describes a staged migration while retaining the Supabase source for rollback. Record actual execution results separately; installing a destination or completing a rehearsal does not mean production has switched.
 
 ## Scope
 
@@ -70,11 +70,11 @@ For a privately signed server certificate, put the **public** CA certificate PEM
 
 `DATABASE_POOL_MAX` defaults to two connections per application instance, with a five-second connection wait and ten-second idle timeout. This is not a global connection budget; the server's role/cluster limits also apply across instances. Tune only after checking usage and the server's memory budget.
 
-Deploy the staged application change, smoke-test it with writes still stopped, and then reopen writes. Updating an environment variable requires a new Vercel deployment to affect the running app. Test preview deployments against staging, not against the production database.
+Deploy the staged application change, smoke-test it with writes still stopped, and then reopen writes. Updating an environment variable requires a new Vercel deployment to affect the running app. Test preview deployments against staging, not against the production database. Give the preview environment a separate login that cannot connect to the production database, and remove the legacy source variable from preview before adding its new CA. Freeze writes at the source database during final copy so already-built production and preview deployments cannot continue writing the old database. Retain that guard after cutover until rollback reconciliation is no longer required.
 
 ## Backups and rollback
 
-Before cutover, verify that backups are scheduled and an independent restore works. Keep the source database and the private export during the agreed rollback window.
+Before cutover, verify that backups are scheduled and an independent restore works. Verify the archive against a fingerprint captured on the same exported snapshot as the dump, so live writes do not produce false mismatches. Keep a private copy outside the database server as well; a daily backup on the same disk cannot protect against server loss. Monitor and renew the server TLS certificate before expiration. Keep the source database and the private export during the agreed rollback window.
 
 Before writes reopen, rollback can restore the previous Vercel connection variables and application deployment. After writes reach the new database, switching back immediately would lose those new writes: stop writes and reconcile/copy the new data first. Do not delete the old Supabase project as part of this migration.
 
