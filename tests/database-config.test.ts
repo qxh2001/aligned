@@ -35,3 +35,14 @@ test("local development can use plain PostgreSQL; pool budgets are bounded", () 
   for (const value of ["0", "21", "invalid", "1.5"]) assert.throws(() => databasePoolConfig({ ...env, DATABASE_POOL_MAX: value }));
   assert.equal(databaseConnectionConfig({ DATABASE_URL: "postgresql://example:offline@db.example.test/aligned" }).ssl?.rejectUnauthorized, true);
 });
+
+test("the explicit target takes precedence and never falls back to the source", () => {
+  const env = { DATABASE_URL: "postgresql://target:offline@192.0.2.1/aligned?sslmode=verify-full", SUPABASE_DATABASE_URL: "postgresql://source:offline@source.example.test/postgres", DATABASE_CA_CERT: ca };
+  const config = databaseConnectionConfig(env);
+  assert.equal(new URL(config.connectionString).hostname, "192.0.2.1");
+  assert.equal(config.ssl?.rejectUnauthorized, true);
+  assert.equal(config.ssl?.ca, ca);
+  assert.throws(() => databaseConnectionConfig({ ...env, DATABASE_URL: "invalid" }));
+  assert.throws(() => databaseConnectionConfig({ ...env, DATABASE_CA_CERT: "invalid" }));
+  assert.throws(() => databaseConnectionConfig({ ...env, DATABASE_URL: "postgresql://target:offline@192.0.2.1/aligned?sslmode=require" }));
+});

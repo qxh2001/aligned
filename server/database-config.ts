@@ -4,10 +4,10 @@ import { X509Certificate } from "node:crypto";
 export function databaseConnectionConfig(env: NodeJS.ProcessEnv = process.env): {
   connectionString: string; ssl?: ConnectionOptions;
 } {
-  // Keep the existing Supabase path during rollout; remove this legacy variable
-  // in the selected deployment environment before setting the new CA.
-  if (env.SUPABASE_DATABASE_URL) {
-    if (env.DATABASE_CA_CERT) throw new Error("Remove SUPABASE_DATABASE_URL before setting DATABASE_CA_CERT.");
+  // Explicit DATABASE_URL takes precedence during migration. If it is invalid,
+  // fail instead of silently falling back to the retained source connection.
+  if (!env.DATABASE_URL && env.SUPABASE_DATABASE_URL) {
+    if (env.DATABASE_CA_CERT) throw new Error("DATABASE_CA_CERT requires an explicit DATABASE_URL.");
     return { connectionString: env.SUPABASE_DATABASE_URL, ssl: { rejectUnauthorized: false } };
   }
   if (!env.DATABASE_URL) throw new Error("DATABASE_URL or SUPABASE_DATABASE_URL is required");
